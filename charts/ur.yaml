@@ -1,0 +1,6 @@
+apiVersion: susecloud.net/v1
+kind: UsageRecord
+metadata:
+ name: neuvector-usage
+value: 10
+version: "5.1"
