@@ -20,9 +20,7 @@ spec:
           value: 'csp-config'
         - name: K8S_CACHE_SECRET
           value: 'csp-adapter-cache'
-        - name: K8S_NEUVECTOR_VERSION_SETTING
-          value: 'server-version'
         image: registry.opensuse.org/home/seanmarlow/containers/containers/cloud/tools/csp-adapter-container:latest
         name: nv-csp-billing-adapter
         imagePullPolicy: "IfNotPresent"
-      serviceAccountName: nv-csp-billing-adapter
+      serviceAccountName: csp-billing-adapter-account

@@ -6,10 +6,14 @@ import sys
 import time
 import traceback
 
+from collections import namedtuple
 from random import randrange
 
 from kubernetes.client.rest import ApiException
 from kubernetes import client, config
+
+Usage = namedtuple('Usage', 'usage version timestamp')
+namespace = 'neuvector-csp-billing-adapter'
 
 
 def meter_billing(
@@ -29,13 +33,18 @@ def meter_billing(
 def get_usage_data():
     api = client.CustomObjectsApi()
     resource = api.get_namespaced_custom_object(
-        group="susecloud.net",
+        group="neuvector.com",
         version="v1",
         name="neuvector-usage",
         namespace="",
-        plural="usagerecords",
+        plural="neuvectorusagerecords",
     )
-    return resource.get('value'), resource.get('version')
+    usage = Usage(
+        resource.get('usage'),
+        resource.get('version'),
+        resource.get('timestamp')
+    )
+    return usage
 
 
 def get_csp_config():
@@ -43,7 +52,7 @@ def get_csp_config():
     try:
         resp = api_instance.read_namespaced_config_map(
             'csp-config',
-            'neuvector-csp-billing-adapter'
+            namespace
         )
     except ApiException as error:
         if error.status == 404:
@@ -64,7 +73,7 @@ def update_csp_config(
     message: str = None
 ):
     api_instance = client.CoreV1Api()
-    data = {}
+    data = get_csp_config()
 
     if support_eligible is not None:
         data['support_eligible'] = support_eligible
@@ -86,7 +95,7 @@ def update_csp_config(
 
     api_instance.patch_namespaced_config_map(
         'csp-config',
-        'neuvector-csp-billing-adapter',
+        namespace,
         data
     )
 
@@ -101,7 +110,8 @@ def create_csp_config():
                 'acct_number': '123451234567'
             },
             'platform': 'x86_64',
-            'product': 'cpe:/o:suse:neuvector:v5.1.0'
+            'product': 'cpe:/o:suse:neuvector:v5.1.0',
+            'usage': 0
         })
     }
 
@@ -109,28 +119,47 @@ def create_csp_config():
         data=data,
         metadata=client.V1ObjectMeta(
             name='csp-config',
-            namespace='neuvector-csp-billing-adapter'
+            namespace=namespace
         )
     )
 
     api_instance.create_namespaced_config_map(
-        'neuvector-csp-billing-adapter',
+        namespace,
         config_map
     )
 
 
+def get_now():
+    return datetime.datetime.now(datetime.timezone.utc)
+
+
+def date_to_string(date):
+    return date.isoformat()
+
+
+def string_to_date(timestamp):
+    return datetime.datetime.fromisoformat(timestamp)
+
+
 def create_cache():
     api_instance = client.CoreV1Api()
+    data = {
+        'maximum_usage': 0,
+        'adapter_start_time': date_to_string(get_now()),
+        'usage_records': [],
+        'last_bill': {}
+    }
+
     secret = client.V1Secret(
         metadata=client.V1ObjectMeta(
             name='csp-adapter-cache',
-            namespace='neuvector-csp-billing-adapter'
+            namespace=namespace
         ),
-        string_data={'data': json.dumps({'max_usage': 0})},
+        string_data={'data': json.dumps(data)},
         type='Opaque'
     )
     api_instance.create_namespaced_secret(
-        'neuvector-csp-billing-adapter',
+        namespace,
         secret
     )
 
@@ -140,7 +169,7 @@ def get_cache():
     try:
         resource = api_instance.read_namespaced_secret(
             'csp-adapter-cache',
-            'neuvector-csp-billing-adapter',
+            namespace,
         )
     except ApiException as error:
         if error.status == 404:
@@ -158,7 +187,7 @@ def update_usage(current_usage: int):
     if current_usage > cache.get('max_usage', 0):
         api_instance.patch_namespaced_secret(
             'csp-adapter-cache',
-            'neuvector-csp-billing-adapter',
+            namespace,
             {'max_usage': current_usage},
         )
 
@@ -172,7 +201,7 @@ def cache_meter_record(
     api_instance = client.CoreV1Api()
     api_instance.patch_namespaced_secret(
         'csp-adapter-cache',
-        'neuvector-csp-billing-adapter',
+        namespace,
         {
             'last_bill': {
                 'quantity': billed_usage,
@@ -201,10 +230,10 @@ def main():
             create_cache()
 
         while True:
-            usage, version = get_usage_data()
-            update_usage(usage)
+            usage = get_usage_data()
+            update_usage(usage.usage)
 
-            now = datetime.datetime.now(datetime.timezone.utc)
+            now = get_now()
             mins = now.strftime('%S')
             if mins.endswith('5'):
                 max_usage = get_max_usage()
@@ -226,7 +255,7 @@ def main():
                         record_id=record_id,
                         quantity=max_usage,
                         dimension='single',
-                        timestamp=now.isoformat()
+                        timestamp=date_to_string(now)
                     )
 
             time.sleep(60)

@@ -1,15 +1,14 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: nv-csp-billing-adapter-cluster-role
+  name: neuvector-csp-billing-adapter-cluster-role
 rules:
 - apiGroups:
-  - susecloud.net
+  - neuvector.com
   resources:
-  - settings
+  - neuvectorusagerecords
   resourceNames:
-  - server-url
-  - server-version
+  - neuvector-usage
   verbs:
   - get
   - list
@@ -34,20 +33,20 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: nv-csp-billing-adapter-crb
+  name: neuvector-csp-billing-adapter-crb
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: nv-csp-billing-adapter-cluster-role
+  name: neuvector-csp-billing-adapter-cluster-role
 subjects:
   - kind: ServiceAccount
-    name: nv-csp-billing-adapter
+    name: csp-billing-adapter-account
     namespace: neuvector-csp-billing-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: nv-csp-billing-adapter-role
+  name: csp-billing-adapter-role
   namespace: neuvector-csp-billing-adapter
 rules:
 - apiGroups:
@@ -82,13 +81,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: nv-csp-billing-adapter-binding
+  name: csp-billing-adapter-binding
   namespace: neuvector-csp-billing-adapter
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: nv-csp-billing-adapter-role
+  name: csp-billing-adapter-role
 subjects:
   - kind: ServiceAccount
-    name: nv-csp-billing-adapter
+    name: csp-billing-adapter-account
     namespace: neuvector-csp-billing-adapter
