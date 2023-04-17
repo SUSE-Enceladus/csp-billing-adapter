@@ -23,7 +23,7 @@ def create_csp_config(
     config: Config,
 ):
     now = get_now()
-    expire = date_to_string(get_date_delta(now, config.metering_interval))
+    expire = date_to_string(get_date_delta(now, config.reporting_interval))
 
     csp_config = {
         'billed': True,
