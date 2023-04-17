@@ -48,7 +48,7 @@ setup(
     url='https://github.com/SUSE-Enceladus/csp-billing-adapter',
     entry_points={
         'console_scripts': [
-            'csp-billing-adapter=csp_billing_adapter.host:main'
+            'csp-billing-adapter=csp_billing_adapter.adapter:main'
         ]
     },
     packages=['csp_billing_adapter'],
