@@ -10,8 +10,12 @@ $ cd csp-billing-adapter
 $ pip install -e .[dev]
 ```
 
-csp-billing-adapter is now installed in the active virtual environment in development
+`csp-billing-adapter` is now installed in the active virtual environment in development
 mode.
+
+*NOTE*: You will need to create a `~/.config/csp-billing-adapter.yaml` with
+appropriate configuration settings to be able to run the `csp-billing-adapter`
+command.
 
 Dev Requirements
 ================
