@@ -35,6 +35,8 @@ from csp_billing_adapter.csp_config import (
 )
 from csp_billing_adapter.utils import get_now, date_to_string
 from csp_billing_adapter import hookspecs
+from csp_billing_adapter import csp_hookspecs
+from csp_billing_adapter import storage_hookspecs
 from csp_billing_adapter import local_csp, product_api
 
 namespace = 'neuvector-csp-billing-adapter'
@@ -43,6 +45,8 @@ namespace = 'neuvector-csp-billing-adapter'
 def get_plugin_manager():
     pm = pluggy.PluginManager('csp_billing_adapter')
     pm.add_hookspecs(hookspecs)
+    pm.add_hookspecs(csp_hookspecs)
+    pm.add_hookspecs(storage_hookspecs)
     pm.load_setuptools_entrypoints('csp_billing_adapter')
     pm.register(local_csp)
     pm.register(product_api)
