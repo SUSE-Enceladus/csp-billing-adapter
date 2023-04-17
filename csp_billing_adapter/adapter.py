@@ -63,9 +63,10 @@ def main():
         log.setLevel(logging.INFO)
 
         config = Config.load_from_file(
-            os.path.expanduser('~/.config/csp-billing-adapter.yaml'),
+            os.path.expanduser('~/.config/csp_billing_adapter/config.yaml'),
             pm.hook
         )
+
         pm.hook.setup_adapter(config=config)
 
         csp_config = pm.hook.get_csp_config(config=config)
