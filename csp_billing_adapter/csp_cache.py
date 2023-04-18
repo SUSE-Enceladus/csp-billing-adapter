@@ -111,7 +111,7 @@ def get_billable_usage(
     return usage
 
 
-def get_bulk_dimensions(
+def get_volume_dimensions(
     billable_usage: dict,
     dimensions: dict
 ):
@@ -140,8 +140,8 @@ def get_bulk_dimensions(
 
 
 def get_billing_dimensions(config: Config, billable_usage: dict):
-    if config.consumption_reporting == 'bulk':
-        dimensions = get_bulk_dimensions(
+    if config.consumption_reporting == 'volume':
+        dimensions = get_volume_dimensions(
             billable_usage,
             config.dimensions
         )
