@@ -104,7 +104,8 @@ def main():
                         csp_config={
                             'billed': False,
                             'error': str(e)
-                        }
+                        },
+                        replace=False
                     )
                 else:
                     cache_meter_record(
@@ -120,7 +121,8 @@ def main():
                             'billed': True,
                             'usage': billable_usage,
                             'error': ''
-                        }
+                        },
+                        replace=False
                     )
 
             time.sleep(60)

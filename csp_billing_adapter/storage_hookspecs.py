@@ -45,7 +45,7 @@ def save_csp_config(config: Config, csp_config: Config):
 def update_csp_config(
     config: Config,
     csp_config: Config,
-    replace: bool = False
+    replace: bool
 ):
     """
     Update or replace the CSP Support Config in stateful storage
@@ -77,7 +77,7 @@ def save_cache(config: Config, cache: dict):
 
 
 @hookspec(firstresult=True)
-def update_cache(config: Config, cache: dict, replace: bool = False):
+def update_cache(config: Config, cache: dict, replace: bool):
     """
     Update or replace CSP Adapter Cache in stateful storage
 
