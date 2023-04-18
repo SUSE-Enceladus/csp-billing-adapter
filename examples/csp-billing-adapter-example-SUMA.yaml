@@ -1,0 +1,29 @@
+api: THE_PATH_WHERE_WE_GET_THE_UNIT_INFORMATION
+billing_interval: monthly
+product_code: TBD
+query_interval: 3600
+reporting_api_is_cumulative: CSP_DEPENDENT_SETTING
+reporting_interval: CSP_DEPENDENT_SETTING
+support_info_collection_cmd: CSP_DEPENDENT_SETTING
+usage_metrics:
+  ha_systems:
+    consumption_reporting: volume
+    dimensions:
+    - dimension: ha_systems
+    usage_aggregation: current
+  live_patching_systems:
+    consumption_reporting: volume
+    dimensions:
+    - dimension: live_patching_systems
+    usage_aggregation: current
+  ltss_systems:
+    consumption_reporting: volume
+    dimensions:
+    - dimension: ltss_systems
+    usage_aggregation: current
+  managed_systems:
+    consumption_reporting: volume
+    dimensions:
+    - dimension: managed_systems
+    usage_aggregation: maximum
+version: 1.1.1
