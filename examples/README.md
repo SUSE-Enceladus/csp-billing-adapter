@@ -1,6 +1,8 @@
 The csp-billing-adapter requires a configuration file, (defaults to `/etc/csp_billing_adapter/config.yaml`)
 in order to run successfully. The configuration files in the `examples` directory 
-contain examples for the different product configurations. 
+contain examples for the different product configurations. The default path can be overridden using the environment variable CSP_ADAPTER_CONFIG_FILE. For example:
+
+`export CSP_ADAPTER_CONFIG_FILE=/tmp/my_config.yaml`
 
 This README provides a listing of all of the fields and descriptions.
 Fields that are optional are labeled accordingly.
@@ -27,9 +29,6 @@ reporting_api_is_cumulative:
 
 reporting_interval: 
     Sets the time in seconds when the csp-billing-adapter reports to the CSP API. The values the csp-billing-adapter reports are determined by a combination of the settings for `reporting_api_is_cumulative` and `billing_interval`.
-
-support_info_collection_cmd:
-    A command executed by the adapter to collect specific information that will be useful for support situations.
 
 usage_metrics: 
 
@@ -94,7 +93,7 @@ usage_metrics:
             Set the minimum unit count the csp-billing-adapter will report. If the application reports a total unit count greater than 0 and less than this number this is the value the csp-billing-adapter will use instead of the application reported number.
     
     dimensions:
-        The dimensions correspond to the setup in the CSP listing, the AWS loaf form, the Azure offer, or the GCP pricing-model. 
+        The dimensions correspond to the setup in the CSP listing, the AWS load form, the Azure offer, or the GCP pricing-model. 
 
 
     - dimension: {dimension id}

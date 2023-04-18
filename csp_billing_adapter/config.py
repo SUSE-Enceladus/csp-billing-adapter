@@ -19,7 +19,8 @@ from yaml.parser import ParserError
 
 
 class Config(dict):
-    """The Config class handles reading configuartion settings
+    """
+    The Config class handles reading configuartion settings
     from a provided configuration file and loading default settings from
     any configured plugins  This class is based on a dict to allow access
     using both dot notation and key lookup.
@@ -43,12 +44,13 @@ class Config(dict):
 
     @staticmethod
     def parse_value(item):
-        """ recursive evaluation if item is a dict """
+        """recursive evaluation if item is a dict"""
         return Config(item) if isinstance(item, dict) else item
 
     @staticmethod
     def load_defaults(data, hook):
-        """Load default settings/values for any plugins that provide
+        """
+        Load default settings/values for any plugins that provide
         defaults as part of their implementation
 
         Args:
@@ -65,7 +67,8 @@ class Config(dict):
 
     @classmethod
     def load_from_file(cls, filename, hook):
-        """Load settings/values from the provided configuration file.
+        """
+        Load settings/values from the provided configuration file.
         and any plugins that provide defaults as part of their implementation
 
         Args:
