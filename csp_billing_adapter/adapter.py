@@ -39,8 +39,6 @@ from csp_billing_adapter import csp_hookspecs
 from csp_billing_adapter import storage_hookspecs
 from csp_billing_adapter import local_csp, product_api, memory_cache
 
-namespace = 'neuvector-csp-billing-adapter'
-
 
 def get_plugin_manager():
     pm = pluggy.PluginManager('csp_billing_adapter')
