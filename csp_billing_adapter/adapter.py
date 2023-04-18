@@ -40,6 +40,7 @@ from csp_billing_adapter import storage_hookspecs
 from csp_billing_adapter import local_csp, product_api
 
 namespace = 'neuvector-csp-billing-adapter'
+default_config_path = '/etc/csp_billing_adapter/config.yaml'
 
 
 def get_plugin_manager():
@@ -62,7 +63,7 @@ def main():
         log.setLevel(logging.INFO)
 
         config = Config.load_from_file(
-            os.path.expanduser('~/.config/csp_billing_adapter/config.yaml'),
+            default_config_path,
             pm.hook
         )
 
