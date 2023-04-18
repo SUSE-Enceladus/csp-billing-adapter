@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+import uuid
+
 import csp_billing_adapter
 
 from csp_billing_adapter.config import Config
@@ -27,12 +29,12 @@ def meter_billing(
     dimensions: dict,
     timestamp: str,
 ):
-    seed = randrange(10)
+    seed = randrange(20)
 
     if seed == 4:
         raise Exception('Unable to submit meter usage. Payment not billed!')
     else:
-        return '1234567890'
+        return str(uuid.uuid4().hex)
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
