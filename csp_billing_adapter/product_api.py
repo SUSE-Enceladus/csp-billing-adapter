@@ -19,7 +19,6 @@ import random
 import csp_billing_adapter
 
 from csp_billing_adapter.config import Config
-from csp_billing_adapter.csp_usage import Usage
 from csp_billing_adapter.utils import get_now, date_to_string
 
 
@@ -30,8 +29,8 @@ def get_usage_data(config: Config):
         weights=(.33, .33, .33, .01),
         k=1
     )[0]
-    usage = Usage(
-        quantity,
-        date_to_string(get_now())
-    )
+    usage = {
+        'managed_node_count': quantity,
+        'reporting_time': date_to_string(get_now())
+    }
     return usage

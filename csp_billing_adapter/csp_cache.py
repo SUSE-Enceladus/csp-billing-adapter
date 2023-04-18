@@ -16,7 +16,7 @@
 
 import math
 
-from collections import namedtuple, defaultdict
+from collections import defaultdict
 
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.utils import (
@@ -25,7 +25,6 @@ from csp_billing_adapter.utils import (
     get_next_bill_time
 )
 
-Usage = namedtuple('Usage', 'usage version timestamp')
 namespace = 'neuvector-csp-billing-adapter'
 
 
@@ -43,9 +42,9 @@ def create_cache(hook, config: Config):
     hook.save_cache(config=config, cache=cache)
 
 
-def add_usage_record(hook, config: Config, record: Usage):
+def add_usage_record(hook, config: Config, record: dict):
     cache = hook.get_cache(config=config)
-    cache['usage_records'].append(dict(record._asdict()))
+    cache['usage_records'].append(record)
     hook.update_cache(config=config, cache=cache, replace=True)
 
 
