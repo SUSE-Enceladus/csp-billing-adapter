@@ -37,9 +37,8 @@ from csp_billing_adapter.utils import get_now, date_to_string
 from csp_billing_adapter import hookspecs
 from csp_billing_adapter import csp_hookspecs
 from csp_billing_adapter import storage_hookspecs
-from csp_billing_adapter import local_csp, product_api
+from csp_billing_adapter import local_csp, product_api, memory_cache
 
-namespace = 'neuvector-csp-billing-adapter'
 default_config_path = '/etc/csp_billing_adapter/config.yaml'
 
 
@@ -51,6 +50,7 @@ def get_plugin_manager():
     pm.load_setuptools_entrypoints('csp_billing_adapter')
     pm.register(local_csp)
     pm.register(product_api)
+    pm.register(memory_cache)
     return pm
 
 

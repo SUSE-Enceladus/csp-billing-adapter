@@ -16,7 +16,7 @@
 
 import math
 
-from collections import namedtuple, defaultdict
+from collections import defaultdict
 
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.utils import (
@@ -25,7 +25,6 @@ from csp_billing_adapter.utils import (
     get_next_bill_time
 )
 
-Usage = namedtuple('Usage', 'usage version timestamp')
 namespace = 'neuvector-csp-billing-adapter'
 
 
@@ -43,9 +42,9 @@ def create_cache(hook, config: Config):
     hook.save_cache(config=config, cache=cache)
 
 
-def add_usage_record(hook, config: Config, record: Usage):
+def add_usage_record(hook, config: Config, record: dict):
     cache = hook.get_cache(config=config)
-    cache['usage_records'].append(dict(record._asdict()))
+    cache['usage_records'].append(record)
     hook.update_cache(config=config, cache=cache, replace=True)
 
 
@@ -111,7 +110,7 @@ def get_billable_usage(
     return usage
 
 
-def get_bulk_dimensions(
+def get_volume_dimensions(
     billable_usage: dict,
     dimensions: dict
 ):
@@ -140,8 +139,8 @@ def get_bulk_dimensions(
 
 
 def get_billing_dimensions(config: Config, billable_usage: dict):
-    if config.consumption_reporting == 'bulk':
-        dimensions = get_bulk_dimensions(
+    if config.consumption_reporting == 'volume':
+        dimensions = get_volume_dimensions(
             billable_usage,
             config.dimensions
         )

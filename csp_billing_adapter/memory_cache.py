@@ -14,34 +14,44 @@
 # limitations under the License.
 #
 
-import uuid
+import logging
 
 import csp_billing_adapter
 
 from csp_billing_adapter.config import Config
 
-from random import randrange
+memory_cache = {}
+
+log = logging.getLogger('CSPBillingAdapter')
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
-def meter_billing(
-    config: Config,
-    dimensions: dict,
-    timestamp: str,
-):
-    seed = randrange(20)
+def get_cache(config: Config):
+    """Retrieve cache content from in-memory cache."""
 
-    if seed == 4:
-        raise Exception('Unable to submit meter usage. Payment not billed!')
+    log.info("Retrieved Cache Content: %s", memory_cache)
+
+    return {**memory_cache}
+
+
+@csp_billing_adapter.hookimpl(trylast=True)
+def update_cache(config: Config, cache: dict, replace: bool = False):
+    """Update in-memory cache with now content, replacing if specified."""
+
+    global memory_cache
+
+    if replace:
+        old_cache = {}
     else:
-        return str(uuid.uuid4().hex)
+        old_cache = memory_cache
+
+    memory_cache = {**old_cache, **cache}
+
+    log.info("Updated Cache Content: %s", memory_cache)
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
-def get_csp_name(config: Config):
-    return 'local'
+def save_cache(config: Config, cache: dict):
+    """Save specified content as new in-memory cache contents."""
 
-
-@csp_billing_adapter.hookimpl(trylast=True)
-def get_account_info(config: Config):
-    return {'account_number': '123456789'}
+    update_cache(config, cache, replace=True)
