@@ -26,7 +26,7 @@ def create_csp_config(
     expire = date_to_string(get_date_delta(now, config.metering_interval))
 
     csp_config = {
-        'billed': True,
+        'billing_api_access_ok': True,
         'timestamp': date_to_string(now),
         'expire': expire
     }
