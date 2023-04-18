@@ -64,7 +64,7 @@ def cache_meter_record(
         'usage_records': []
     }
 
-    hook.update_cache(config=config, cache=data)
+    hook.update_cache(config=config, cache=data, replace=False)
 
 
 def get_max_usage(usage_records: list, config: Config):
