@@ -72,12 +72,15 @@ def cba_config(data_dir, request):
 def cba_pm(cba_config):
     """
     Fixture returning an initialized plugin manager instance, based
-    on supplied config. Also needs to reset the cache to empty to
-    simulate a fresh start.
+    on supplied config. Also needs to reset the in-memory cache and
+    csp_config to empty to simulate a fresh start.
     """
     pm = get_plugin_manager()
 
     # reset the in-memory cache to empty
     pm.hook.save_cache(config=cba_config, cache=dict())
+
+    # reset the in-memory csp_config to empty
+    pm.hook.save_csp_config(config=cba_config, csp_config=dict())
 
     return pm
