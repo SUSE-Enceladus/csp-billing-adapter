@@ -39,6 +39,10 @@ from csp_billing_adapter import csp_hookspecs
 from csp_billing_adapter import storage_hookspecs
 from csp_billing_adapter import local_csp, product_api, memory_cache
 
+default_config_path = '/etc/csp_billing_adapter/config.yaml'
+
+config_path = os.environ.get('CSP_ADAPTER_CONFIG_FILE') or default_config_path
+
 
 def get_plugin_manager():
     pm = pluggy.PluginManager('csp_billing_adapter')
@@ -61,7 +65,7 @@ def main():
         log.setLevel(logging.INFO)
 
         config = Config.load_from_file(
-            os.path.expanduser('~/.config/csp_billing_adapter/config.yaml'),
+            config_path,
             pm.hook
         )
 
