@@ -35,7 +35,7 @@ def get_cache(config: Config):
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
-def update_cache(config: Config, cache: dict, replace: bool = False):
+def update_cache(config: Config, cache: dict, replace: bool):
     """Update in-memory cache with now content, replacing if specified."""
 
     global memory_cache
