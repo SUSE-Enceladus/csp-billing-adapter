@@ -1,12 +1,52 @@
+import pathlib
+import yaml
+
 import pytest
 
 from csp_billing_adapter.adapter import get_plugin_manager
 
 
+def pytest_configure(config):
+    """Custom pytest configuration."""
+
+    # configure custom markers
+    config.addinivalue_line(
+        "markers", ('config: the config file path to load')
+    )
+
+
+@pytest.fixture(scope="session")
+def data_dir(pytestconfig):
+    """
+    Fixture returning the path to the data directory under the tests
+    area for this pytest run.
+    """
+    # Get testing root directory, supporting older versions of
+    # pytest that don't have rootpath
+    if hasattr(pytestconfig, 'rootpath'):
+        testroot = pytestconfig.rootpath
+    else:
+        testroot = pathlib.Path(pytestconfig.rootdir)
+
+    return testroot / "tests/data"
+
+
 @pytest.fixture
-def cba_config():
-    """Fixture returning a config dictionary."""
-    return dict(version=1, billing_interval=30, metering_interval=30)
+def cba_config(data_dir, request):
+    """
+    Fixture returning a config dictionary loaded from the config
+    file specified by the config marker, defaulting to a known
+    good config if none is provided.
+    """
+    config_marker = request.node.get_closest_marker('config')
+    if config_marker:
+        config_file = config_marker.args[0]
+    else:
+        config_file = 'config_good.yaml'
+
+    config_path = data_dir / config_file
+
+    return yaml.safe_load(config_path.open())
 
 
 @pytest.fixture
