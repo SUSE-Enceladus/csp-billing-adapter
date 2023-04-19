@@ -37,7 +37,12 @@ from csp_billing_adapter.utils import get_now, date_to_string
 from csp_billing_adapter import hookspecs
 from csp_billing_adapter import csp_hookspecs
 from csp_billing_adapter import storage_hookspecs
-from csp_billing_adapter import local_csp, product_api, memory_cache
+from csp_billing_adapter import (
+    local_csp,
+    product_api,
+    memory_cache,
+    memory_csp_config
+)
 
 
 def get_plugin_manager():
@@ -49,6 +54,7 @@ def get_plugin_manager():
     pm.register(local_csp)
     pm.register(product_api)
     pm.register(memory_cache)
+    pm.register(memory_csp_config)
     return pm
 
 
