@@ -71,7 +71,7 @@ def get_max_usage(usage_records: list, config: Config):
     max_usage = defaultdict(int)
 
     for record in usage_records:
-        for dimension, units in record:
+        for dimension, units in record.items():
             if dimension == 'timestamp':
                 continue
 
@@ -87,23 +87,26 @@ def get_average_usage(usage_records: list):
 
     total_usage = defaultdict(int)
     for record in usage_records:
-        for dimension, units in record:
+        for dimension, units in record.items():
             if dimension == 'timestamp':
                 continue
 
             total_usage[dimension] += record.get(dimension, 0)
 
     average_usage = {}
-    for dimension, usage in total_usage:
+    for dimension, usage in total_usage.items():
         average_usage[dimension] = math.ceil(usage / len(usage_records))
+
+    return average_usage
 
 
 def get_billable_usage(
     usage_records: list,
-    consumption_model: str
+    consumption_model: str,
+    config: Config
 ):
     if consumption_model == 'max':
-        usage = get_max_usage(usage_records)
+        usage = get_max_usage(usage_records, config)
     elif consumption_model == 'average':
         usage = get_average_usage(usage_records)
 
@@ -116,7 +119,7 @@ def get_volume_dimensions(
 ):
     billed_dimensions = []
 
-    for dimension_type, units in billable_usage:
+    for dimension_type, units in billable_usage.items():
         if dimension_type == 'timestamp':
             continue
 
@@ -135,7 +138,7 @@ def get_volume_dimensions(
                 'units': billed_usage
             })
 
-            return billed_dimensions
+    return billed_dimensions
 
 
 def get_billing_dimensions(config: Config, billable_usage: dict):
@@ -144,7 +147,7 @@ def get_billing_dimensions(config: Config, billable_usage: dict):
             billable_usage,
             config.dimensions
         )
-    elif config.consumption_reportin == 'tiered':
+    elif config.consumption_reporting == 'tiered':
         pass
 
     return dimensions
