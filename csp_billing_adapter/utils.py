@@ -13,29 +13,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+"""utils.py is part of csp-billing-adapter and provides utility functions"""
 import datetime
-
 from dateutil.relativedelta import relativedelta
 
 
 def get_now():
+    """get current time"""
     return datetime.datetime.now(datetime.timezone.utc)
 
 
-def date_to_string(date):
-    return date.isoformat()
+def date_to_string(date: datetime.datetime):
+    """convert date to string"""
+    try:
+        return date.isoformat()
+    except (AttributeError, ValueError) as exc:
+        raise type(exc)(
+            f"Invalid date passed to date_to_string(): {date}") from exc
 
 
-def string_to_date(timestamp):
-    return datetime.datetime.fromisoformat(timestamp)
+def string_to_date(timestamp: str):
+    """convert string to date"""
+    try:
+        return datetime.datetime.fromisoformat(timestamp)
+    except ValueError as exc:
+        raise type(exc)(
+            f"Invalid timestamp passed to string_to_date(): {timestamp}") \
+            from exc
 
 
 def get_date_delta(date: datetime.datetime, delta: int):
-    return date + datetime.timedelta(seconds=delta)
+    """get a new date using a provided date and delta offset"""
+    try:
+        return date + datetime.timedelta(seconds=delta)
+    except TypeError as exc:
+        raise type(exc)(
+            f"Invalid values passed to get_date_delta() "
+            f"date:{date} delta:{delta}"
+            ) from exc
 
 
 def get_next_bill_time(date: datetime.datetime, billing_interval: str):
+    """
+    Determine the next billing date using provided date and billing interval
+    """
     kwargs = {}
 
     if billing_interval == 'monthly':
