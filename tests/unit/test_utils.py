@@ -72,7 +72,7 @@ def test_bad_get_date_delta_type_error():
     """Text exception raised for utils.get_date_delta"""
     with raises(TypeError, match="foo"):
         utils.get_date_delta(datetime.datetime(2023, 4, 20, 13, 8, 30),
-        'foo')
+                             'foo')
 
 
 def test_good_get_next_bill_time_hourly():

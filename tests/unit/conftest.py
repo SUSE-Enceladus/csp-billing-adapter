@@ -20,6 +20,7 @@ import yaml
 import pytest
 
 from csp_billing_adapter.adapter import get_plugin_manager
+from csp_billing_adapter.config import Config
 
 
 def pytest_configure(config):
@@ -65,7 +66,7 @@ def cba_config(data_dir, request):
     with config_path.open() as conf_fp:
         config = yaml.safe_load(conf_fp)
 
-    return config
+    return Config(config)
 
 
 @pytest.fixture
