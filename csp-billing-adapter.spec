@@ -15,28 +15,35 @@
 # Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 
-
+%{?!python_module:%define python_module() python-%{**} python3-%{**}}
+%global skip_python2 1
 Name:           csp-billing-adapter
 Version:        0.0.1
 Release:        0
 Summary:        TBD
 License:        Apache-2.0
+Group:          Development/Languages/Python
 URL:            https://github.com/SUSE-Enceladus/csp-billing-adapter
 Source:         https://files.pythonhosted.org/packages/source/c/%{name}/%{name}-%{version}.tar.gz
+BuildRequires:  fdupes
 BuildRequires:  python-rpm-macros
-BuildRequires:  python3-pluggy
-BuildRequires:  python3-python-dateutil
+BuildRequires:  %{python_module setuptools}
+BuildRequires:  %{python_module pluggy}
+BuildRequires:  %{python_module python-dateutil}
 %if %{with test}
-BuildRequires:  python3-pytest
-BuildRequires:  python3-coverage
-BuildRequires:  python3-pytest-cov
+BuildRequires:  %{python_module pytest}
+BuildRequires:  %{python_module coverage}
+BuildRequires:  %{python_module pytest-cov}
 %endif
-Requires:       python3-pluggy
-Requires:       python3-python-dateutil
+Requires:       %{python_module setuptools}
+Requires:       %{python_module pluggy}
+Requires:       %{python_module python-dateutil}
 BuildArch:      noarch
+%python_subpackages
 
 %description
-TBD
+Configurable isolation layer that provides the information needed
+to report billing information to the CSP API.
 
 %prep
 %autosetup -n %{name}-%{version}
@@ -50,14 +57,14 @@ TBD
 
 %check
 %if %{with test}
-python3 -m pytest --cov=csp_billing_adapter
+%pytest
 %endif
 
 %files %{python_files}
 %license LICENSE
 %doc README.md CONTRIBUTING.md
-%{python_sitelib}/%{name}
-%{python_sitelib}/%{name}-%{version}*-info
+%{python_sitelib}/csp_billing_adapter
+%{python_sitelib}/csp_billing_adapter-%{version}*-info
 %{_bindir}/%{name}
 
 %changelog
