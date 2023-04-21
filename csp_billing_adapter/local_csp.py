@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import logging
 import uuid
 
 import csp_billing_adapter
@@ -22,6 +23,8 @@ from csp_billing_adapter.config import Config
 
 from random import randrange
 
+log = logging.getLogger('CSPBillingAdapter')
+
 
 @csp_billing_adapter.hookimpl(trylast=True)
 def meter_billing(
@@ -29,6 +32,7 @@ def meter_billing(
     dimensions: dict,
     timestamp: str,
 ):
+    log.warning(f'Mock CSP received metering of: {str(dimensions)}')
     seed = randrange(20)
 
     if seed == 4:

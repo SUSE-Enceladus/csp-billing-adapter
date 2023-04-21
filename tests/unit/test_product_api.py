@@ -14,22 +14,18 @@
 # limitations under the License.
 #
 
-from csp_billing_adapter.config import Config
-from csp_billing_adapter.utils import get_now, date_to_string, get_date_delta
+#
+# Unit tests for the csp_billing_adapter.product_api
+#
+
+from csp_billing_adapter.product_api import get_usage_data
 
 
-def create_csp_config(
-    hook,
-    config: Config,
-):
-    now = get_now()
-    expire = date_to_string(get_date_delta(now, config.reporting_interval))
+def test_memory_get_cache(cba_config):
+    possible_node_counts = [9, 10, 11, 25]
 
-    csp_config = {
-        'billing_api_access_ok': True,
-        'timestamp': date_to_string(now),
-        'expire': expire,
-        'errors': []
-    }
+    usage = get_usage_data(cba_config)
 
-    hook.save_csp_config(config=config, csp_config=csp_config)
+    assert 'managed_node_count' in usage
+    assert usage['managed_node_count'] in possible_node_counts
+    assert 'reporting_time' in usage
