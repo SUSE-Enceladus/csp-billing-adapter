@@ -25,28 +25,23 @@ import pluggy
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.csp_cache import (
     add_usage_record,
-    cache_meter_record,
-    create_cache,
-    get_billing_dimensions,
-    get_billable_usage
+    create_cache
 )
 from csp_billing_adapter.csp_config import (
     create_csp_config,
 )
-from csp_billing_adapter.utils import get_now, date_to_string
+from csp_billing_adapter.utils import get_now, string_to_date
+from csp_billing_adapter.bill_utils import process_metering
 from csp_billing_adapter import hookspecs
 from csp_billing_adapter import csp_hookspecs
 from csp_billing_adapter import storage_hookspecs
 from csp_billing_adapter import (
     local_csp,
-    product_api,
-    memory_cache,
-    memory_csp_config
 )
 
-default_config_path = '/etc/csp_billing_adapter/config.yaml'
+DEFAULT_CONFIG_PATH = '/etc/csp_billing_adapter/config.yaml'
 
-config_path = os.environ.get('CSP_ADAPTER_CONFIG_FILE') or default_config_path
+config_path = os.environ.get('CSP_ADAPTER_CONFIG_FILE') or DEFAULT_CONFIG_PATH
 
 
 def get_plugin_manager():
@@ -56,9 +51,6 @@ def get_plugin_manager():
     pm.add_hookspecs(storage_hookspecs)
     pm.load_setuptools_entrypoints('csp_billing_adapter')
     pm.register(local_csp)
-    pm.register(product_api)
-    pm.register(memory_cache)
-    pm.register(memory_csp_config)
     return pm
 
 
@@ -79,10 +71,7 @@ def main():
 
         csp_config = pm.hook.get_csp_config(config=config)
         if not csp_config:
-            create_csp_config(
-                pm.hook,
-                config,
-            )
+            create_csp_config(pm.hook, config)
 
         cache = pm.hook.get_cache(config=config)
         if not cache:
@@ -92,50 +81,15 @@ def main():
             usage = pm.hook.get_usage_data(config=config)
             add_usage_record(pm.hook, config, usage)
 
+            cache = pm.hook.get_cache(config=config)
             now = get_now()
-            mins = now.strftime('%M')
-            if mins.endswith('3'):
-                cache = pm.hook.get_cache(config=config)
-                billable_usage = get_billable_usage(
-                    cache.get('usage_records', []),
-                    config
-                )
-                dimensions = get_billing_dimensions(config, billable_usage)
 
-                try:
-                    record_id = pm.hook.meter_billing(
-                        config=config,
-                        dimensions=dimensions,
-                        timestamp=date_to_string(get_now())
-                    )
-                except Exception as e:
-                    pm.hook.update_csp_config(
-                        config=config,
-                        csp_config={
-                            'billed': False,
-                            'error': str(e)
-                        },
-                        replace=False
-                    )
-                else:
-                    cache_meter_record(
-                        pm.hook,
-                        config,
-                        record_id,
-                        dimensions,
-                        timestamp=date_to_string(now),
-                    )
-                    pm.hook.update_csp_config(
-                        config=config,
-                        csp_config={
-                            'billed': True,
-                            'usage': billable_usage,
-                            'error': ''
-                        },
-                        replace=False
-                    )
+            if now >= string_to_date(cache['next_bill_time']):
+                process_metering(config, cache, pm.hook)
+            elif now >= string_to_date(cache['next_reporting_time']):
+                process_metering(config, cache, pm.hook, empty_metering=True)
 
-            time.sleep(60)
+            time.sleep(config.query_interval)
     except KeyboardInterrupt:
         sys.exit(0)
     except SystemExit as e:

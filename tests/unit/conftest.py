@@ -19,7 +19,14 @@ import yaml
 
 import pytest
 
+from csp_billing_adapter import (
+    product_api,
+    memory_cache,
+    memory_csp_config
+)
+
 from csp_billing_adapter.adapter import get_plugin_manager
+from csp_billing_adapter.config import Config
 
 
 def pytest_configure(config):
@@ -58,14 +65,14 @@ def cba_config(data_dir, request):
     if config_marker:
         config_file = config_marker.args[0]
     else:
-        config_file = 'config_good.yaml'
+        config_file = 'config_good_average.yaml'
 
     config_path = data_dir / config_file
 
     with config_path.open() as conf_fp:
         config = yaml.safe_load(conf_fp)
 
-    return config
+    return Config(config)
 
 
 @pytest.fixture
@@ -76,6 +83,11 @@ def cba_pm(cba_config):
     csp_config to empty to simulate a fresh start.
     """
     pm = get_plugin_manager()
+
+    # add hooks for local testing support
+    pm.register(product_api)
+    pm.register(memory_cache)
+    pm.register(memory_csp_config)
 
     # reset the in-memory cache to empty
     pm.hook.save_cache(config=cba_config, cache=dict())

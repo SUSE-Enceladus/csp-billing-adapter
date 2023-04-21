@@ -71,8 +71,10 @@ def test_bad_get_date_delta_value_error():
 def test_bad_get_date_delta_type_error():
     """Text exception raised for utils.get_date_delta"""
     with raises(TypeError, match="foo"):
-        utils.get_date_delta(datetime.datetime(2023, 4, 20, 13, 8, 30),
-        'foo')
+        utils.get_date_delta(
+            datetime.datetime(2023, 4, 20, 13, 8, 30),
+            'foo'
+        )
 
 
 def test_good_get_next_bill_time_hourly():
@@ -89,3 +91,11 @@ def test_good_get_next_bill_time_monthly():
         datetime.datetime(2023, 4, 20, 13, 8, 30),
         'monthly') == \
         datetime.datetime(2023, 5, 20, 13, 8, 30)
+
+
+def test_good_get_next_bill_time_test():
+    """Test working utils.get_next_bill_time"""
+    assert utils.get_next_bill_time(
+        datetime.datetime(2023, 4, 20, 13, 8, 30),
+        'test') == \
+        datetime.datetime(2023, 4, 20, 13, 13, 30)
