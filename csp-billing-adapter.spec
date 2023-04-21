@@ -30,6 +30,7 @@ BuildRequires:  python-rpm-macros
 BuildRequires:  %{python_module setuptools}
 BuildRequires:  %{python_module pluggy}
 BuildRequires:  %{python_module python-dateutil}
+BuildRequires:  %{python_module PyYAML}
 %if %{with test}
 BuildRequires:  %{python_module pytest}
 BuildRequires:  %{python_module coverage}
@@ -38,6 +39,7 @@ BuildRequires:  %{python_module pytest-cov}
 Requires:       %{python_module setuptools}
 Requires:       %{python_module pluggy}
 Requires:       %{python_module python-dateutil}
+Requires:       %{python_module PyYAML}
 BuildArch:      noarch
 %python_subpackages
 
