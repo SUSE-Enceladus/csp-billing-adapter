@@ -17,6 +17,7 @@
 
 %{?!python_module:%define python_module() python-%{**} python3-%{**}}
 %global skip_python2 1
+%define pythons python3
 Name:           csp-billing-adapter
 Version:        0.0.1
 Release:        0
@@ -36,10 +37,10 @@ BuildRequires:  %{python_module pytest}
 BuildRequires:  %{python_module coverage}
 BuildRequires:  %{python_module pytest-cov}
 %endif
-Requires:       %{python_module setuptools}
-Requires:       %{python_module pluggy}
-Requires:       %{python_module python-dateutil}
-Requires:       %{python_module PyYAML}
+Requires:       python-setuptools
+Requires:       python-pluggy
+Requires:       python-python-dateutil
+Requires:       python-PyYAML
 BuildArch:      noarch
 %python_subpackages
 
