@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+"""Core event loop for csp-billing-adapter."""
+
 import logging
 import os
 import sys
