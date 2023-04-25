@@ -1,0 +1,33 @@
+billing_interval: monthly
+product_code: foo
+query_interval: 3600
+reporting_api_is_cumulative: true
+reporting_interval: 3600
+usage_metrics:
+  jobs:
+    consumption_reporting: volume
+    dimensions:
+    - dimension: jobs_tier_1
+      max: 15
+      min: 0
+    - dimension: jobs_tier_2
+      max: 50
+      min: 16
+    - dimension: jobs_tier_3
+      min: 51
+    min_consumption: 5
+    usage_aggregation: average
+  nodes:
+    consumption_reporting: volume
+    dimensions:
+    - dimension: nodes_tier_1
+      max: 5
+      min: 0
+    - dimension: nodes_tier_2
+      max: 15
+      min: 6
+    - dimension: nodes_tier_3
+      min: 16
+    min_consumption: 2
+    usage_aggregation: maximum
+version: 1.1.1

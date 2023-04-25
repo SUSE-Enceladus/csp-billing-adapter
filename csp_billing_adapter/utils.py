@@ -16,6 +16,7 @@
 """utils.py is part of csp-billing-adapter and provides utility functions"""
 import datetime
 from dateutil.relativedelta import relativedelta
+from dateutil import parser
 
 
 def get_now():
@@ -35,7 +36,7 @@ def date_to_string(date: datetime.datetime):
 def string_to_date(timestamp: str):
     """convert string to date"""
     try:
-        return datetime.datetime.fromisoformat(timestamp)
+        return parser.parse(timestamp)
     except ValueError as exc:
         raise type(exc)(
             f"Invalid timestamp passed to string_to_date(): {timestamp}") \
@@ -63,5 +64,7 @@ def get_next_bill_time(date: datetime.datetime, billing_interval: str):
         kwargs['months'] = 1
     elif billing_interval == 'hourly':
         kwargs['hours'] = 1
+    elif billing_interval == 'test':
+        kwargs['minutes'] = 5
 
     return date + relativedelta(**kwargs)

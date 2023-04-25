@@ -29,6 +29,7 @@ def get_usage_data(config: Config):
         weights=(.33, .33, .33, .01),
         k=1
     )[0]
+
     usage = {
         'managed_node_count': quantity,
         'reporting_time': date_to_string(get_now())

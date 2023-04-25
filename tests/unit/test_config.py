@@ -23,7 +23,7 @@ from yaml.parser import ParserError
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.adapter import get_plugin_manager
 
-good_config_file = 'tests/data/config_good.yaml'
+good_config_file = 'tests/data/config_good_average.yaml'
 bad_config_file = 'tests/data/config_bad.yaml'
 missing_config_file = 'tests/data/config_missing.yaml'
 pm = get_plugin_manager()
