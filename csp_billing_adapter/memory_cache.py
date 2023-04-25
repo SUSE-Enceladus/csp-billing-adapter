@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+"""In-memory cache plugin implementation."""
+
 import logging
 
 import csp_billing_adapter

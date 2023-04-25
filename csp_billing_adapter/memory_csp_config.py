@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+"""In-memory csp_config plugin implementation."""
+
 import logging
 
 import csp_billing_adapter

@@ -14,6 +14,12 @@
 # limitations under the License.
 #
 
+"""
+High-level (implementation agnostic) cache operations that leverage
+Pluggy hooks to perform the implementation specific low-level cache
+management operations.
+"""
+
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.utils import (
     get_now,
