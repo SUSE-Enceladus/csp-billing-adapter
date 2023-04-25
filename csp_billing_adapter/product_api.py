@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+"""Pluggy hook implementations emulating CSP usage data retrieval."""
+
 import random
 
 import csp_billing_adapter

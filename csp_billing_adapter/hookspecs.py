@@ -14,6 +14,8 @@
 # limitations under the License.
 #
 
+"""Pluggy hook interface specifications for general functionality."""
+
 import pluggy
 
 from csp_billing_adapter.config import Config

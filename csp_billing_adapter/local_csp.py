@@ -14,6 +14,13 @@
 # limitations under the License.
 #
 
+"""
+Pluggy hook implementations emulating CSP interactions.
+
+Note that the meter_billing can fail with a generic exception raised
+5% of the time.
+"""
+
 import logging
 import uuid
 

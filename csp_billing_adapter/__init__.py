@@ -14,6 +14,18 @@
 # limitations under the License.
 #
 
+"""
+csp-billing-adapter
+
+This package provides the core implementation of the Cloud Service
+Provider (CSP) Billing Adapter.
+
+This core implementation is intended to be CSP and deployment
+framework agnostic, providing Pluggy hook interface specifications
+that allow plugins to be registered that provide CSP or deployment
+framework specific implementations of required functionality.
+"""
+
 import pluggy
 
 __author__ = """SUSE"""
