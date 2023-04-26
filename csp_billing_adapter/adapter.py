@@ -46,7 +46,13 @@ DEFAULT_CONFIG_PATH = '/etc/csp_billing_adapter/config.yaml'
 config_path = os.environ.get('CSP_ADAPTER_CONFIG_FILE') or DEFAULT_CONFIG_PATH
 
 
-def get_plugin_manager():
+def get_plugin_manager() -> pluggy.PluginManager:
+    """
+    Creates a PluginManager instance for the 'csp_billing_adapter', setting
+    it up appropriately.
+
+    :return: Return a configured pluggy.PluginManager instance
+    """
     pm = pluggy.PluginManager('csp_billing_adapter')
     pm.add_hookspecs(hookspecs)
     pm.add_hookspecs(csp_hookspecs)
@@ -56,7 +62,10 @@ def get_plugin_manager():
     return pm
 
 
-def main():
+def main() -> None:
+    """
+    Main routine, implementing the event loop for the csp_billing_adapter.
+    """
     pm = get_plugin_manager()
 
     try:

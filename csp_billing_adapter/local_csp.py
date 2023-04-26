@@ -38,7 +38,8 @@ def meter_billing(
     config: Config,
     dimensions: dict,
     timestamp: str,
-):
+) -> str:
+    """Simulate a CSP metering operation with a 5% chance of failure."""
     log.warning(f'Mock CSP received metering of: {str(dimensions)}')
     seed = randrange(20)
 
@@ -49,10 +50,12 @@ def meter_billing(
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
-def get_csp_name(config: Config):
+def get_csp_name(config: Config) -> str:
+    """Return the 'local' CSP's name."""
     return 'local'
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
-def get_account_info(config: Config):
+def get_account_info(config: Config) -> str:
+    """Return the 'local' CSP's account info."""
     return {'account_number': '123456789'}

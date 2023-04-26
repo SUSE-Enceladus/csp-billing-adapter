@@ -19,12 +19,12 @@ from dateutil.relativedelta import relativedelta
 from dateutil import parser
 
 
-def get_now():
+def get_now() -> datetime.datetime:
     """get current time"""
     return datetime.datetime.now(datetime.timezone.utc)
 
 
-def date_to_string(date: datetime.datetime):
+def date_to_string(date: datetime.datetime) -> str:
     """convert date to string"""
     try:
         return date.isoformat()
@@ -33,7 +33,7 @@ def date_to_string(date: datetime.datetime):
             f"Invalid date passed to date_to_string(): {date}") from exc
 
 
-def string_to_date(timestamp: str):
+def string_to_date(timestamp: str) -> datetime.datetime:
     """convert string to date"""
     try:
         return parser.parse(timestamp)
@@ -43,7 +43,10 @@ def string_to_date(timestamp: str):
             from exc
 
 
-def get_date_delta(date: datetime.datetime, delta: int):
+def get_date_delta(
+    date: datetime.datetime,
+    delta: int
+) -> datetime.datetime:
     """get a new date using a provided date and delta offset"""
     try:
         return date + datetime.timedelta(seconds=delta)
@@ -54,7 +57,10 @@ def get_date_delta(date: datetime.datetime, delta: int):
             ) from exc
 
 
-def get_next_bill_time(date: datetime.datetime, billing_interval: str):
+def get_next_bill_time(
+    date: datetime.datetime,
+    billing_interval: str
+) -> datetime.datetime:
     """
     Determine the next billing date using provided date and billing interval
     """

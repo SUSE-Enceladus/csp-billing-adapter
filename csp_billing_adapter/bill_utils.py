@@ -32,7 +32,17 @@ from csp_billing_adapter.utils import (
 from csp_billing_adapter.config import Config
 
 
-def get_max_usage(metric: str, usage_records: list):
+def get_max_usage(metric: str, usage_records: list) -> int:
+    """
+    Determines the maximum usage value of the given 'metric' in the
+    provided 'usage_records' list, defaulting to 0 if not found.
+
+    :param metric: The metric to search for in the usage_records.
+    :param usage_records: The list of usage records to process.
+    :return:
+        The maximum value found for the specified metric or 0 if
+        no matching usage_records were found.
+    """
     # In case of no records usage is 0
     # This prevents value error when calling max
     if not usage_records:
@@ -42,7 +52,17 @@ def get_max_usage(metric: str, usage_records: list):
     return max_usage
 
 
-def get_average_usage(metric: str, usage_records: list):
+def get_average_usage(metric: str, usage_records: list) -> int:
+    """
+    Determines the average usage value of the given 'metric' in the
+    provided 'usage_records' list, defaulting to 0 if not found.
+
+    :param metric: The metric to search for in the usage_records.
+    :param usage_records: The list of usage records to process.
+    :return:
+        The average of the values found for the specified metric or
+        0 if no matching usage_records were found.
+    """
     # In case of no records usage is 0
     # This prevents divide by zero to get average
     if not usage_records:
@@ -58,7 +78,28 @@ def get_billable_usage(
     usage_records: list,
     config: Config,
     empty_usage: False
-):
+) -> dict:
+    """
+    Processes the provided 'usage_records' to determine the billable
+    usage details for the metrics specified in the 'config', using
+    the aggregation method defined for the metric in the config, and
+    returns a hash containing the determined usage details for each
+    specified metric. The 'usage_records' list can be optionally
+    cleared after processing, indicated by the 'empty_usage' flag.
+
+    :param usage_records: The list of usage records to process.
+    :param config:
+        The configuration specifying the metrics that need to be
+        processed in the usage records list.
+    :param empty_usage:
+        Flag indicating whether to return a billable usage hash
+        with all metrics reporting zero usage, rather than the
+        actual billable usage. Defaults to False.
+    :return:
+        Returns a hash mapping metric names to calculated usage,
+        factoring in specified minimum chargeable usage for each
+        metric, if it is specified in the config.
+    """
     billable_usage = {}
 
     if empty_usage:
@@ -83,7 +124,24 @@ def get_volume_dimensions(
     usage: int,
     metric_dimensions: dict,
     billed_dimensions: dict
-):
+) -> None:
+    """
+    For the metric specified by 'usage_metric', with the given
+    'usage' value, determine the appropiate volume dimension tier
+    that corresponds to that usage level, in the 'metric_dimensions'
+    hash, and update the 'billed_dimensions' hash with an entry
+    mapping that tier's name to the specified usage amount.
+
+    :param usage_metric: The metric being processed.
+    :param usage: The calculated usage for the specified metric.
+    :param metric_dimensions:
+        The hash specifying the volume dimension tiers for the
+        specified metric.
+    :param billed_dimensions:
+        The hash that will be updated with an entry mapping the
+        determined volume dimension tier's name to the specified
+        usage value.
+    """
     for dimension in metric_dimensions:
         if 'min' in dimension and usage < dimension['min']:
             continue
@@ -97,7 +155,26 @@ def get_volume_dimensions(
         break
 
 
-def get_billing_dimensions(config: Config, billable_usage: dict):
+def get_billing_dimensions(
+    config: Config,
+    billable_usage: dict
+) -> dict:
+    """
+    Construct a hash mapping each metric's appropriate billable
+    dimension name to it's usage value in the 'billable_usage'
+    hash, using the metric's dimension configuration settings
+    from the provided 'config'.
+
+    :param config:
+        The configuration specifying the metrics that need to be
+        processed in the usage records list.
+    :param billable_usage:
+        A hash mapping the usage metrics specific in the 'config' to
+        their calculated usage values.
+    :return:
+        A hash mapping each metric tier's name to it's associated
+        usage value.
+    """
     billed_dimensions = {}
 
     for usage_metric, usage in billable_usage.items():
@@ -123,7 +200,44 @@ def process_metering(
     cache: dict,
     hook,
     empty_metering: bool = False
-):
+) -> None:
+    """
+    Handle the CSP metering process, updating the csp_config and cache
+    data stores appropriately.
+    The metering process consists of a number of steps, starting with
+    retrieving the lastest billable usage details, or zeroed usage
+    details if 'empty_metering' is specified as True.
+    Next the billing dimensions hash is determined for those billable
+    usage details, which are used to perform a meter_billing() operation
+    against the CSP, via the registered Pluggy hook.
+    If the meter_billing() operation fails, the csp_config data store will
+    be updated to reflect that failure.
+    Otherwise the csp_config data store will be updated to reflect that
+    a metering operation was successfully performed at that time, with
+    the validity expiration time updated to reflect the next metering
+    time. Additionally, if 'empty_metering' was specified as True, the
+    cache data store will be updated to reflect that a successful
+    metering operation occurred, updating the metering time, the next
+    bill time and saving the metering record id and submitted billing
+    dimensions, and similarly the csp_config will be updated with the
+    latest billable usage details and the and the time that the last
+    bill was submitted..
+
+    :param config:
+        The configuration specifying the metrics that need to be
+        processed to determine billable usage and dimensions.
+    :param cache:
+        The cache data store contents that will be used to determine
+        the billable usage details.
+    :param hook:
+        The Pluggy plugin manager hook that will be used to call the
+        meter_billing operation.
+    :param empty_metering:
+        A flag indicating if an empty (zeroed) metering record should be
+        submitted, and if not not the csp_config and cache data stores
+        will be updated appropriately to relfect a successful metering
+        operation.
+    """
     now = get_now()
 
     billable_usage = get_billable_usage(

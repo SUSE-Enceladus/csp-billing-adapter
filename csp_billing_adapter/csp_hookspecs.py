@@ -28,7 +28,7 @@ def meter_billing(
     config: Config,
     dimensions: dict,
     timestamp: str,
-):
+) -> str:
     """
     Process metering request against the CSP API.
 
@@ -44,7 +44,7 @@ def get_billing_data(
     config: Config,
     start_time,
     end_time
-):
+) -> None:
     """
     Retrieve billing data from CSP API within between start and end time
 
@@ -55,7 +55,7 @@ def get_billing_data(
 
 
 @hookspec(firstresult=True)
-def get_csp_name(config: Config):
+def get_csp_name(config: Config) -> str:
     """
     Retrieves the CSP name from the loaded plugin
 
@@ -65,7 +65,7 @@ def get_csp_name(config: Config):
 
 
 @hookspec(firstresult=True)
-def get_account_info(config: Config):
+def get_account_info(config: Config) -> dict:
     """
     Retrieves the account information from the loaded plugin
 

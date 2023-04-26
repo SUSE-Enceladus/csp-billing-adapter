@@ -27,7 +27,16 @@ from csp_billing_adapter.utils import get_now, date_to_string, get_date_delta
 def create_csp_config(
     hook,
     config: Config,
-):
+) -> None:
+    """
+    Initialise the csp_config data store.
+
+    :param hook:
+        The Pluggy plugin manager hook used to call the save_csp_cache()
+        operation.
+    :param config:
+        The configuration settings associated with the CSP.
+    """
     now = get_now()
     expire = date_to_string(get_date_delta(now, config.reporting_interval))
 
