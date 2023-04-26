@@ -29,7 +29,7 @@ def create_csp_config(
     config: Config,
 ) -> None:
     """
-    Initialise the csp_config data store.
+    Initialize the csp_config data store.
 
     :param hook:
         The Pluggy plugin manager hook used to call the save_csp_cache()

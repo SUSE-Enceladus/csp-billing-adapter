@@ -84,8 +84,14 @@ def get_billable_usage(
     usage details for the metrics specified in the 'config', using
     the aggregation method defined for the metric in the config, and
     returns a hash containing the determined usage details for each
-    specified metric. The 'usage_records' list can be optionally
-    cleared after processing, indicated by the 'empty_usage' flag.
+    specified metric.
+
+    If 'empty_usage' is specified as True, the returned hash mapping
+    will specify a value of 0 for all usage metrics defined in the
+    'config', which represents a zero value billable usage for those
+    cases where we will be submitting metering more frequently, e.g.
+    hourly, to a CSP than we want to submit actual billable usage,
+    which may be on a monthly cadence.
 
     :param usage_records: The list of usage records to process.
     :param config:
@@ -215,7 +221,7 @@ def process_metering(
     Otherwise the csp_config data store will be updated to reflect that
     a metering operation was successfully performed at that time, with
     the validity expiration time updated to reflect the next metering
-    time. Additionally, if 'empty_metering' was specified as True, the
+    time. Additionally, if 'empty_metering' is specified as False, the
     cache data store will be updated to reflect that a successful
     metering operation occurred, updating the metering time, the next
     bill time and saving the metering record id and submitted billing
