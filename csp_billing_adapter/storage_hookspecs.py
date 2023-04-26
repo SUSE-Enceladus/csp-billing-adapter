@@ -24,7 +24,7 @@ hookspec = pluggy.HookspecMarker('csp_billing_adapter')
 
 
 @hookspec(firstresult=True)
-def get_csp_config(config: Config):
+def get_csp_config(config: Config) -> None:
     """
     Retrieves the CSP Support Config from stateful storage
 
@@ -34,7 +34,7 @@ def get_csp_config(config: Config):
 
 
 @hookspec(firstresult=True)
-def save_csp_config(config: Config, csp_config: Config):
+def save_csp_config(config: Config, csp_config: Config) -> None:
     """
     Saves the CSP Support Config to stateful storage
 
@@ -48,7 +48,7 @@ def update_csp_config(
     config: Config,
     csp_config: Config,
     replace: bool
-):
+) -> None:
     """
     Update or replace the CSP Support Config in stateful storage
 
@@ -59,7 +59,7 @@ def update_csp_config(
 
 
 @hookspec(firstresult=True)
-def get_cache(config: Config):
+def get_cache(config: Config) -> None:
     """
     Retrieves the CSP Adapter Cache from stateful storage
 
@@ -69,7 +69,7 @@ def get_cache(config: Config):
 
 
 @hookspec(firstresult=True)
-def save_cache(config: Config, cache: dict):
+def save_cache(config: Config, cache: dict) -> None:
     """
     Saves the CSP Adapter Cache to stateful storage
 
@@ -79,7 +79,7 @@ def save_cache(config: Config, cache: dict):
 
 
 @hookspec(firstresult=True)
-def update_cache(config: Config, cache: dict, replace: bool):
+def update_cache(config: Config, cache: dict, replace: bool) -> None:
     """
     Update or replace CSP Adapter Cache in stateful storage
 

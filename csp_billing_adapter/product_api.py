@@ -25,7 +25,12 @@ from csp_billing_adapter.utils import get_now, date_to_string
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
-def get_usage_data(config: Config):
+def get_usage_data(config: Config) -> dict:
+    """
+    Simulate a CSP usage data retrieval returning one of four possible
+    usage values.
+    """
+
     quantity = random.choices(
         [9, 10, 11, 25],
         weights=(.33, .33, .33, .01),

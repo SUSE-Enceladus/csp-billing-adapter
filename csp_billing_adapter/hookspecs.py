@@ -43,5 +43,10 @@ def get_usage_data(config: Config):
 
 
 @hookspec(firstresult=True)
-def load_defaults(defaults: dict):
-    pass
+def load_defaults(defaults: dict) -> None:
+    """
+    Loads the defaults into the provided defaults hash.
+
+    :param defaults:
+        The hash into which the defaults will be loaded.
+    """
