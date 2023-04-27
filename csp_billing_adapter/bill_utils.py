@@ -260,7 +260,8 @@ def process_metering(
         record_id = hook.meter_billing(
             config=config,
             dimensions=billed_dimensions,
-            timestamp=now
+            timestamp=now,
+            dry_run=False
         )
     except Exception as e:
         hook.update_csp_config(

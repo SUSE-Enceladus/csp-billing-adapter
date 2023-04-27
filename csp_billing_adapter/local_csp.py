@@ -24,11 +24,12 @@ Note that the meter_billing can fail with a generic exception raised
 import logging
 import uuid
 
+from random import randrange
+from datetime import datetime
+
 import csp_billing_adapter
 
 from csp_billing_adapter.config import Config
-
-from random import randrange
 
 log = logging.getLogger('CSPBillingAdapter')
 
@@ -37,7 +38,8 @@ log = logging.getLogger('CSPBillingAdapter')
 def meter_billing(
     config: Config,
     dimensions: dict,
-    timestamp: str,
+    timestamp: datetime,
+    dry_run: bool
 ) -> str:
     """Simulate a CSP metering operation with a 5% chance of failure."""
     log.warning(f'Mock CSP received metering of: {str(dimensions)}')
