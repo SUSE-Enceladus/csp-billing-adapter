@@ -18,6 +18,8 @@
 
 import pluggy
 
+from datetime import datetime
+
 from csp_billing_adapter.config import Config
 
 hookspec = pluggy.HookspecMarker('csp_billing_adapter')
@@ -27,14 +29,16 @@ hookspec = pluggy.HookspecMarker('csp_billing_adapter')
 def meter_billing(
     config: Config,
     dimensions: dict,
-    timestamp: str,
+    timestamp: datetime,
+    dry_run: bool
 ) -> str:
     """
     Process metering request against the CSP API.
 
     :param config: The application configuration dictionary
     :param dimensions: A hash of the billing dimensions and quantities
-    :param timestamp: RFC 3339 compliant date time stamp in UTC
+    :param timestamp: RFC 3339 compliant datetime in UTC
+    :param dry_run: Whether to test run metering call
     :return: Metering API call ID.
     """
 
