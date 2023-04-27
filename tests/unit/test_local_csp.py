@@ -19,7 +19,9 @@
 #
 
 import uuid
+
 from unittest import mock
+from datetime import datetime
 
 from pytest import raises
 
@@ -32,7 +34,7 @@ from csp_billing_adapter.local_csp import (
 
 def test_meter_billing_ok(cba_config):
     test_dimensions = {}
-    test_timestamp = "some_timestamp"
+    test_timestamp = datetime.now()
     test_uuid = uuid.uuid4()
     test_randval = 1
 
@@ -47,7 +49,8 @@ def test_meter_billing_ok(cba_config):
             billing_id = meter_billing(
                 cba_config,
                 test_dimensions,
-                test_timestamp
+                test_timestamp,
+                dry_run=False
             )
 
             assert billing_id == str(test_uuid.hex)
@@ -55,7 +58,7 @@ def test_meter_billing_ok(cba_config):
 
 def test_meter_billing_error(cba_config):
     test_dimensions = {}
-    test_timestamp = "some_timestamp"
+    test_timestamp = datetime.now()
     test_randval = 4
 
     with mock.patch(
@@ -66,7 +69,8 @@ def test_meter_billing_error(cba_config):
             meter_billing(
                 cba_config,
                 test_dimensions,
-                test_timestamp
+                test_timestamp,
+                dry_run=False
             )
 
 
