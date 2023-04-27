@@ -16,6 +16,7 @@
 
 """Core event loop for csp-billing-adapter."""
 
+import datetime
 import logging
 import os
 import sys
@@ -32,7 +33,11 @@ from csp_billing_adapter.csp_cache import (
 from csp_billing_adapter.csp_config import (
     create_csp_config,
 )
-from csp_billing_adapter.utils import get_now, string_to_date
+from csp_billing_adapter.utils import (
+    date_to_string,
+    get_now,
+    string_to_date
+)
 from csp_billing_adapter.bill_utils import process_metering
 from csp_billing_adapter import hookspecs
 from csp_billing_adapter import csp_hookspecs
@@ -62,6 +67,59 @@ def get_plugin_manager() -> pluggy.PluginManager:
     return pm
 
 
+def setup_logging(hook) -> logging.Logger:
+    """Setup basic logging"""
+    logging.basicConfig()
+    log = logging.getLogger('CSPBillingAdapter')
+    log.setLevel(logging.INFO)
+
+    return log
+
+
+def get_config(config_path, hook):
+    """Load the specified config file."""
+
+    config = Config.load_from_file(
+        config_path,
+        hook
+    )
+
+    return config
+
+
+def initial_adapter_setup(hook, config: Config) -> None:
+    """Initial setup before starting event loop."""
+
+    hook.setup_adapter(config=config)
+
+    csp_config = hook.get_csp_config(config=config)
+    if not csp_config:
+        create_csp_config(hook, config)
+
+    cache = hook.get_cache(config=config)
+    if not cache:
+        create_cache(hook, config)
+
+
+def event_loop_handler(
+    hook,
+    config: Config
+) -> datetime.datetime:
+    """Perform the event loop processing actions."""
+    usage = hook.get_usage_data(config=config)
+    add_usage_record(hook, config, usage)
+
+    cache = hook.get_cache(config=config)
+    now = get_now()
+
+    if now >= string_to_date(cache['next_bill_time']):
+        process_metering(config, cache, hook)
+    elif now >= string_to_date(cache['next_reporting_time']):
+        process_metering(config, cache, hook, empty_metering=True)
+
+    return now
+
+
 def main() -> None:
     """
     Main routine, implementing the event loop for the csp_billing_adapter.
@@ -69,36 +127,19 @@ def main() -> None:
     pm = get_plugin_manager()
 
     try:
-        logging.basicConfig()
-        log = logging.getLogger('CSPBillingAdapter')
-        log.setLevel(logging.INFO)
+        log = setup_logging(pm.hook)
 
-        config = Config.load_from_file(
+        config = get_config(
             config_path,
             pm.hook
         )
 
-        pm.hook.setup_adapter(config=config)
-
-        csp_config = pm.hook.get_csp_config(config=config)
-        if not csp_config:
-            create_csp_config(pm.hook, config)
-
-        cache = pm.hook.get_cache(config=config)
-        if not cache:
-            create_cache(pm.hook, config)
+        initial_adapter_setup(pm.hook, config)
 
         while True:
-            usage = pm.hook.get_usage_data(config=config)
-            add_usage_record(pm.hook, config, usage)
+            now = event_loop_handler(pm.hook, config)
 
-            cache = pm.hook.get_cache(config=config)
-            now = get_now()
-
-            if now >= string_to_date(cache['next_bill_time']):
-                process_metering(config, cache, pm.hook)
-            elif now >= string_to_date(cache['next_reporting_time']):
-                process_metering(config, cache, pm.hook, empty_metering=True)
+            log.info("Processed event loop at %s", date_to_string(now))
 
             time.sleep(config.query_interval)
     except KeyboardInterrupt:

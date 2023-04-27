@@ -288,7 +288,7 @@ def test_process_metering(cba_pm, cba_config):
 
     with mock.patch(
         'csp_billing_adapter.local_csp.randrange',
-        return_value=0  # meter_billing will succed
+        return_value=0  # meter_billing will succeed
     ):
         cache_data = cba_pm.hook.get_cache(config=cba_config)
         process_metering(

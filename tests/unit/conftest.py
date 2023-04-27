@@ -55,11 +55,11 @@ def data_dir(pytestconfig):
 
 
 @pytest.fixture
-def cba_config(data_dir, request):
+def cba_config_path(data_dir, request):
     """
-    Fixture returning a config dictionary loaded from the config
-    file specified by the config marker, defaulting to a known
-    good config if none is provided.
+    Fixture returning the path to the config file to load, as specified
+    by the config marker, defaulting to a known good config if none is
+    specified.
     """
     config_marker = request.node.get_closest_marker('config')
     if config_marker:
@@ -67,9 +67,16 @@ def cba_config(data_dir, request):
     else:
         config_file = 'config_good_average.yaml'
 
-    config_path = data_dir / config_file
+    return data_dir / config_file
 
-    with config_path.open() as conf_fp:
+
+@pytest.fixture
+def cba_config(cba_config_path):
+    """
+    Fixture returning a Config object loaded from the config
+    file specified by the cba_config_path fixture.
+    """
+    with cba_config_path.open() as conf_fp:
         config = yaml.safe_load(conf_fp)
 
     return Config(config)
