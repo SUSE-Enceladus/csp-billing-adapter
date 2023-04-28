@@ -60,4 +60,8 @@ def get_csp_name(config: Config) -> str:
 @csp_billing_adapter.hookimpl(trylast=True)
 def get_account_info(config: Config) -> str:
     """Return the 'local' CSP's account info."""
-    return {'account_number': '123456789'}
+    return {
+        'account_id': '123456789',
+        'arch': 'x86_64',
+        'cloud_provider': 'local'
+    }

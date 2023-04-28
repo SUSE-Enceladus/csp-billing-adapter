@@ -85,7 +85,9 @@ def test_get_csp_name(cba_config):
 def test_get_account_info(cba_config):
     # ensure this matches what is specified in local_csp module.
     test_account_info = {
-        'account_number': '123456789'
+        'account_id': '123456789',
+        'arch': 'x86_64',
+        'cloud_provider': 'local'
     }
 
     account_info = get_account_info(cba_config)
