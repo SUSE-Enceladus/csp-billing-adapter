@@ -161,7 +161,8 @@ def test_cache_meter_record(cba_pm, cba_config):
         record_id=test_record_id,
         dimensions=test_dimensions,
         metering_time=test_time1,
-        next_bill_time=test_time2
+        next_bill_time=test_time2,
+        usage_records=cache['usage_records']
     )
 
     cache = cba_pm.hook.get_cache(config=cba_config)

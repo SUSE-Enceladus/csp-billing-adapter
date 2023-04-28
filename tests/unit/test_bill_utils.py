@@ -43,52 +43,57 @@ from csp_billing_adapter.utils import (
     get_date_delta
 )
 
+now = date_to_string(get_now())
+nowplus1hr = date_to_string(get_date_delta(get_now(), 3600))
+
 
 def test_get_average_usage():
     metric1 = "dim1"
     usage_records1 = [
-        {metric1: 1},
-        {metric1: 1},
-        {metric1: 1},
+        {metric1: 1, 'reporting_time': now},
+        {metric1: 1, 'reporting_time': now},
+        {metric1: 1, 'reporting_time': now},
     ]
     metric2 = "dim2"
     usage_records2 = [
-        {metric2: 1},
-        {metric2: 2},
-        {metric2: 3},
+        {metric2: 1, 'reporting_time': now},
+        {metric2: 2, 'reporting_time': now},
+        {metric2: 3, 'reporting_time': now},
+        {metric2: 4, 'reporting_time': nowplus1hr},
     ]
 
-    average_usage = get_average_usage(metric1, [])
+    average_usage = get_average_usage(metric1, [], now)
     assert average_usage == 0
 
-    average_usage = get_average_usage(metric1, usage_records1)
+    average_usage = get_average_usage(metric1, usage_records1, now)
     assert average_usage == 1
 
-    average_usage = get_average_usage(metric2, usage_records2)
+    average_usage = get_average_usage(metric2, usage_records2, now)
     assert average_usage == 2
 
 
 def test_get_max_usage():
     metric1 = "dim1"
     usage_records1 = [
-        {metric1: 1},
-        {metric1: 1},
-        {metric1: 1},
+        {metric1: 1, 'reporting_time': now},
+        {metric1: 1, 'reporting_time': now},
+        {metric1: 1, 'reporting_time': now},
     ]
     metric2 = "dim2"
     usage_records2 = [
-        {metric2: 1},
-        {metric2: 2},
-        {metric2: 3},
+        {metric2: 1, 'reporting_time': now},
+        {metric2: 2, 'reporting_time': now},
+        {metric2: 3, 'reporting_time': now},
+        {metric2: 4, 'reporting_time': nowplus1hr},
     ]
 
-    max_usage = get_max_usage(metric1, [])
+    max_usage = get_max_usage(metric1, [], now)
     assert max_usage == 0
 
-    max_usage = get_max_usage(metric1, usage_records1)
+    max_usage = get_max_usage(metric1, usage_records1, now)
     assert max_usage == 1
 
-    max_usage = get_max_usage(metric2, usage_records2)
+    max_usage = get_max_usage(metric2, usage_records2, now)
     assert max_usage == 3
 
 
@@ -98,30 +103,33 @@ def test_get_billage_usage_empty(cba_config):
     billable_usage = get_billable_usage(
         usage_records=[],
         config=cba_config,
-        empty_usage=True
+        empty_usage=True,
+        bill_time=now
     )
 
     assert metric in billable_usage
     assert billable_usage[metric] == 0
 
 
-def test_get_billage_usage_average(cba_config):
+def test_get_billable_usage_average(cba_config):
     metric = "managed_node_count"
     usage_records1 = [
-        {metric: 1},
-        {metric: 1},
-        {metric: 1},
+        {metric: 1, 'reporting_time': now},
+        {metric: 1, 'reporting_time': now},
+        {metric: 1, 'reporting_time': now},
     ]
     usage_records2 = [
-        {metric: 1},
-        {metric: 2},
-        {metric: 3},
+        {metric: 1, 'reporting_time': now},
+        {metric: 2, 'reporting_time': now},
+        {metric: 3, 'reporting_time': now},
+        {metric: 4, 'reporting_time': nowplus1hr},
     ]
 
     billable_usage = get_billable_usage(
         usage_records=usage_records1,
         config=cba_config,
-        empty_usage=False
+        empty_usage=False,
+        bill_time=now
     )
 
     assert metric in billable_usage
@@ -130,7 +138,8 @@ def test_get_billage_usage_average(cba_config):
     billable_usage = get_billable_usage(
         usage_records=usage_records2,
         config=cba_config,
-        empty_usage=False
+        empty_usage=False,
+        bill_time=now
     )
 
     assert metric in billable_usage
@@ -138,24 +147,26 @@ def test_get_billage_usage_average(cba_config):
 
 
 @mark.config('config_good_maximum.yaml')
-def test_get_billage_usage_maximum(cba_config):
+def test_get_billable_usage_maximum(cba_config):
     config = cba_config
     metric = "managed_node_count"
     usage_records1 = [
-        {metric: 1},
-        {metric: 1},
-        {metric: 1},
+        {metric: 1, 'reporting_time': now},
+        {metric: 1, 'reporting_time': now},
+        {metric: 1, 'reporting_time': now},
     ]
     usage_records2 = [
-        {metric: 1},
-        {metric: 2},
-        {metric: 3},
+        {metric: 1, 'reporting_time': now},
+        {metric: 2, 'reporting_time': now},
+        {metric: 3, 'reporting_time': now},
+        {metric: 4, 'reporting_time': nowplus1hr},
     ]
 
     billable_usage = get_billable_usage(
         usage_records=usage_records1,
         config=config,
-        empty_usage=False
+        empty_usage=False,
+        bill_time=now
     )
 
     assert metric in billable_usage
@@ -164,7 +175,8 @@ def test_get_billage_usage_maximum(cba_config):
     billable_usage = get_billable_usage(
         usage_records=usage_records2,
         config=config,
-        empty_usage=False
+        empty_usage=False,
+        bill_time=now
     )
 
     assert metric in billable_usage
@@ -243,6 +255,16 @@ def test_process_metering(cba_pm, cba_config):
             "reporting_time": date_to_string(now),
             "jobs": 28,
             "nodes": 7
+        },
+        {
+            "reporting_time": date_to_string(
+                get_date_delta(
+                    now,
+                    (cba_config.reporting_interval * 1)
+                )
+            ),
+            "jobs": 17,
+            "nodes": 8
         }
     ]
 
@@ -315,7 +337,10 @@ def test_process_metering(cba_pm, cba_config):
         )
 
         test_cache = cba_pm.hook.get_cache(config=cba_config)
-        assert test_cache["usage_records"] == []
+        assert test_cache["usage_records"] == [
+            record for record in test_usage_data
+            if record['reporting_time'] > date_to_string(now)
+        ]
         assert test_cache["last_bill"] != {}
 
         test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)

@@ -32,13 +32,18 @@ from csp_billing_adapter.utils import (
 from csp_billing_adapter.config import Config
 
 
-def get_max_usage(metric: str, usage_records: list) -> int:
+def get_max_usage(metric: str, usage_records: list, bill_time: str) -> int:
     """
     Determines the maximum usage value of the given 'metric' in the
-    provided 'usage_records' list, defaulting to 0 if not found.
+    provided 'usage_records' list, defaulting to 0 if not found. Any
+    records that occurred after the bill time are omitted from the
+    calculation.
 
     :param metric: The metric to search for in the usage_records.
     :param usage_records: The list of usage records to process.
+    :param bill_time:
+        The timestamp that is being billed for. Usage is calculated
+        using only records that occurred prior to the bill_time.
     :return:
         The maximum value found for the specified metric or 0 if
         no matching usage_records were found.
@@ -48,17 +53,25 @@ def get_max_usage(metric: str, usage_records: list) -> int:
     if not usage_records:
         return 0
 
-    max_usage = max(record.get(metric, 0) for record in usage_records)
+    max_usage = max(
+        record.get(metric, 0) for record in usage_records
+        if record['reporting_time'] <= bill_time
+    )
     return max_usage
 
 
-def get_average_usage(metric: str, usage_records: list) -> int:
+def get_average_usage(metric: str, usage_records: list, bill_time: str) -> int:
     """
     Determines the average usage value of the given 'metric' in the
-    provided 'usage_records' list, defaulting to 0 if not found.
+    provided 'usage_records' list, defaulting to 0 if not found. Any
+    records that occurred after the bill time are omitted from the
+    calculation.
 
     :param metric: The metric to search for in the usage_records.
     :param usage_records: The list of usage records to process.
+    :param bill_time:
+        The timestamp that is being billed for. Usage is calculated
+        using only records that occurred prior to the bill_time.
     :return:
         The average of the values found for the specified metric or
         0 if no matching usage_records were found.
@@ -68,7 +81,10 @@ def get_average_usage(metric: str, usage_records: list) -> int:
     if not usage_records:
         return 0
 
-    total_usage = sum(record.get(metric, 0) for record in usage_records)
+    total_usage = sum(
+        record.get(metric, 0) for record in usage_records
+        if record['reporting_time'] <= bill_time
+    )
     average_usage = math.ceil(total_usage / len(usage_records))
 
     return average_usage
@@ -77,7 +93,8 @@ def get_average_usage(metric: str, usage_records: list) -> int:
 def get_billable_usage(
     usage_records: list,
     config: Config,
-    empty_usage: False
+    empty_usage: False,
+    bill_time: str
 ) -> dict:
     """
     Processes the provided 'usage_records' to determine the billable
@@ -101,6 +118,9 @@ def get_billable_usage(
         Flag indicating whether to return a billable usage hash
         with all metrics reporting zero usage, rather than the
         actual billable usage. Defaults to False.
+    :param bill_time:
+        The timestamp that is being billed for. Usage is calculated
+        using only records that occurred prior to the bill_time.
     :return:
         Returns a hash mapping metric names to calculated usage,
         factoring in specified minimum chargeable usage for each
@@ -113,9 +133,9 @@ def get_billable_usage(
 
     for metric, data in config.usage_metrics.items():
         if data['usage_aggregation'] == 'average':
-            usage = get_average_usage(metric, usage_records)
+            usage = get_average_usage(metric, usage_records, bill_time)
         elif data['usage_aggregation'] == 'maximum':
-            usage = get_max_usage(metric, usage_records)
+            usage = get_max_usage(metric, usage_records, bill_time)
 
         billable_usage[metric] = max(
             usage,
@@ -249,7 +269,8 @@ def process_metering(
     billable_usage = get_billable_usage(
         cache.get('usage_records', []),
         config,
-        empty_usage=empty_metering
+        empty_metering,
+        date_to_string(now)
     )
     billed_dimensions = get_billing_dimensions(
         config,
@@ -300,7 +321,8 @@ def process_metering(
                 record_id,
                 billed_dimensions,
                 metering_time,
-                next_bill_time
+                next_bill_time,
+                cache.get('usage_records', [])
             )
 
             data['usage'] = billable_usage

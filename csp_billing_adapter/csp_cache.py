@@ -87,14 +87,16 @@ def cache_meter_record(
     record_id: str,
     dimensions: dict,
     metering_time: str,
-    next_bill_time: str
+    next_bill_time: str,
+    usage_records: list
 ) -> None:
     """
     Update the cache data store to reflect the fact that a successful CSP
     metering operation was performed, storing the record_id returned by
     the CSP, the billing dimensions submitted in the metering operation,
     the time at which it was performed, and the time after which the next
-    billing operation will be performed.
+    billing operation will be performed. Any usage records used calculate
+    current usage are removed from the cache.
 
     :param hook:
         The Pluggy plugin manager hook used to call the update_cache()
@@ -109,6 +111,8 @@ def cache_meter_record(
     :param next_bill_time:
         The time after which the next billing submission should be
         performed.
+    :param usage_records:
+        A list of all usage records currently in the cache.
     """
     data = {
         'last_bill': {
@@ -116,7 +120,10 @@ def cache_meter_record(
             'record_id': record_id,
             'metering_time': metering_time
         },
-        'usage_records': [],
+        'usage_records': [
+            record for record in usage_records
+            if record['reporting_time'] > metering_time
+        ],
         'next_bill_time': next_bill_time
     }
 
