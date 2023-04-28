@@ -83,7 +83,7 @@ usage_metrics:
                 When set to this value, the billing adapter queries the application API hourly and stores the retrieved information in the internal data structure. The csp-billing-adapter stores the maximum value. When the billing adapter reports to the CSP API, the csp-billing-adapter retrieves this value and this is the reported number of units. The internal counter is reset to 0.
 
             current
-                When set to this value, the billing adapter does not need to store any data from the application, it can query the application API and then directly report the value to the CSP API.
+                (NOT IMPLEMENTED) When set to this value, the billing adapter does not need to store any data from the application, it can query the application API and then directly report the value to the CSP API.
 
             average
                 When set to this value, the billing adapter queries the application API hourly and stores the retrieved information in the internal data structure. When the billing adapter reports to the CSP API the average over all values is calculated and this is the number of units being reported. This calculation is rounded up to the nearest integer unit. The internal storage structure is cleared. Expressed differently sum_of_all_numbers_in_array / length_of_array
