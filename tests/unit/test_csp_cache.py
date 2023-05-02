@@ -121,18 +121,27 @@ def test_add_usage_record(cba_pm, cba_config):
 def test_cache_meter_record(cba_pm, cba_config):
     test_time1 = datetime.datetime.now(datetime.timezone.utc)
     test_time2 = test_time1 + datetime.timedelta(seconds=5)
-    test_usage = {
-        'managed_node_count': 1,
-        'reporting_time': test_time1
-    }
+    test_time3 = test_time2 + datetime.timedelta(seconds=5)
+    test_usage_data = [
+        {
+            'managed_node_count': 1,
+            'reporting_time': test_time1.isoformat()
+        },
+        {
+            'managed_node_count': 1,
+            'reporting_time': test_time3.isoformat()
+        }
+    ]
     test_dimensions = {'dim1': 1, 'dim2': 2}
     test_record_id = "some_record_id"
 
     # cache should initially be empty
     assert cba_pm.hook.get_cache(config=cba_config) == {}
 
+    # initialise the cache
     create_cache(cba_pm.hook, cba_config)
 
+    # verify cache contents correspond to an initialised cache
     cache = cba_pm.hook.get_cache(config=cba_config)
 
     assert 'usage_records' in cache
@@ -141,32 +150,36 @@ def test_cache_meter_record(cba_pm, cba_config):
     assert cache['last_bill'] == {}
     assert 'next_bill_time' in cache
 
-    add_usage_record(
-        cba_pm.hook,
-        config=cba_config,
-        record=test_usage
-    )
+    # add usage records from test_usage_data
+    for record in test_usage_data:
+        add_usage_record(
+            cba_pm.hook,
+            config=cba_config,
+            record=record
+        )
 
+    # verify cache now has expected usage records
     cache = cba_pm.hook.get_cache(config=cba_config)
 
-    assert cache['usage_records'] != []
-    assert test_usage in cache['usage_records']
-    assert cache['usage_records'] == [test_usage]
-    assert 'last_bill' in cache
-    assert cache['last_bill'] == {}
+    assert cache['usage_records'] == test_usage_data
 
+    # update cache to reflect successfully metered billing of first
+    # usage record
     cache_meter_record(
         cba_pm.hook,
         config=cba_config,
         record_id=test_record_id,
         dimensions=test_dimensions,
         metering_time=test_time1,
-        next_bill_time=test_time2
+        next_bill_time=test_time2,
+        billed_records=[test_usage_data[0]]  # billed first record
     )
 
+    # verify that billed usage record has been removed
+    # and that last_bill has been updated appropriately
     cache = cba_pm.hook.get_cache(config=cba_config)
 
-    assert cache['usage_records'] == []
+    assert cache['usage_records'] == [test_usage_data[1]]
     assert cache['last_bill'] != {}
     assert 'record_id' in cache['last_bill']
     assert cache['last_bill']['record_id'] == test_record_id
