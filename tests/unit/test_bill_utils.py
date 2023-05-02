@@ -64,7 +64,7 @@ def gen_metric_usage_records(
             "reporting_time": date_to_string(
                 get_date_delta(
                     now,
-                    -(config.reporting_interval * 2)
+                    -(config.reporting_interval * 3)
                 )
             ),
             metric: first_value
@@ -73,13 +73,18 @@ def gen_metric_usage_records(
             "reporting_time": date_to_string(
                 get_date_delta(
                     now,
-                    -(config.reporting_interval * 1)
+                    -(config.reporting_interval * 2)
                 )
             ),
             metric: first_value + (1 * increment)
         },
         {
-            "reporting_time": date_to_string(now),
+            "reporting_time": date_to_string(
+                get_date_delta(
+                    now,
+                    -(config.reporting_interval * 1)
+                )
+            ),
             metric: first_value + (2 * increment)
         }
     ]
@@ -108,7 +113,7 @@ def gen_mixed_usage_records(
             "reporting_time": date_to_string(
                 get_date_delta(
                     bill_time,
-                    -(config.reporting_interval * 2)
+                    -(config.reporting_interval * 3)
                 )
             ),
             "jobs": 15,
@@ -118,14 +123,19 @@ def gen_mixed_usage_records(
             "reporting_time": date_to_string(
                 get_date_delta(
                     bill_time,
-                    -(config.reporting_interval * 1)
+                    -(config.reporting_interval * 2)
                 )
             ),
             "jobs": 23,
             "nodes": 6
         },
         {
-            "reporting_time": date_to_string(bill_time),
+            "reporting_time": date_to_string(
+                get_date_delta(
+                    bill_time,
+                    -(config.reporting_interval * 1)
+                )
+            ),
             "jobs": 28,
             "nodes": 7
         },

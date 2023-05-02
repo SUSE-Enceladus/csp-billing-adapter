@@ -88,7 +88,7 @@ def cache_meter_record(
     dimensions: dict,
     metering_time: str,
     next_bill_time: str,
-    billed_records: list
+    remaining_records: list
 ) -> None:
     """
     Update the cache data store to reflect the fact that a successful CSP
@@ -110,23 +110,16 @@ def cache_meter_record(
     :param next_bill_time:
         The time after which the next billing submission should be
         performed.
-    :param billed_records:
-        The list of records used to generate the most recent bill.
+    :param remaining_records:
+        The list of records not used to generate the most recent bill.
     """
-    cache = hook.get_cache(config=config)
-
-    remaining_usage_records = [
-        record
-        for record in cache.get('usage_records', [])
-        if record not in billed_records
-    ]
     data = {
         'last_bill': {
             'dimensions': dimensions,
             'record_id': record_id,
             'metering_time': metering_time
         },
-        'usage_records': remaining_usage_records,
+        'usage_records': remaining_records,
         'next_bill_time': next_bill_time
     }
 

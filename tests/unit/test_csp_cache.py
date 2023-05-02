@@ -172,10 +172,10 @@ def test_cache_meter_record(cba_pm, cba_config):
         dimensions=test_dimensions,
         metering_time=test_time1,
         next_bill_time=test_time2,
-        billed_records=[test_usage_data[0]]  # billed first record
+        remaining_records=[test_usage_data[1]]  # remove first record
     )
 
-    # verify that billed usage record has been removed
+    # verify that usage_records has been updated correctly
     # and that last_bill has been updated appropriately
     cache = cba_pm.hook.get_cache(config=cba_config)
 

@@ -211,18 +211,18 @@ def filter_usage_records_by_date_range(
 ) -> list:
     """
     Returns the list of 'usage_records' filtered to remove records
-    that fall outside the specified, inclusive, date range, from
-    'range_start' to 'range_end'.
+    that fall outside the date range, starting at 'range_start' up
+    to, but not including, 'range_end'.
 
     :param usage_records: The list of usage records to be filtered.
-    :param range_start: The start of the inclusive date range.
-    :param range_end: The end of the inclusive date range.
+    :param range_start: The inclusive start of the date range.
+    :param range_end: The exclusive end of the date range.
     :return:
-        The set of usage records that fails within the specified
+        The set of usage records that falls within the specified
         date range.
     """
     return [record for record in usage_records
-            if range_start <= record['reporting_time'] <= range_end]
+            if range_start <= record['reporting_time'] < range_end]
 
 
 def filter_usage_records_in_billing_period(
@@ -243,7 +243,7 @@ def filter_usage_records_in_billing_period(
         The end of the current billing period, which is used to
         determine the appropriate set of records to filter onG.
     :return:
-        The set of usage records that fails within the billing period
+        The set of usage records that falls within the billing period
         that ending at 'billing_period_end'.
     """
     # determine time range to filter records for
@@ -309,13 +309,19 @@ def process_metering(
     now = get_now()
 
     # select usage records appropriate for this billing period
+    usage_records = cache.get('usage_records', [])
     billing_period_end = cache.get('next_bill_time')
     billable_records = filter_usage_records_in_billing_period(
-        cache.get('usage_records', []),
+        usage_records,
         config,
         billing_period_end
     )
 
+    # the remaining records not selected as billable
+    remaining_records = [record for record in usage_records
+                         if record not in billable_records]
+
+    # determine billable usage and associated billable dimensions
     billable_usage = get_billable_usage(
         billable_records,
         config,
@@ -371,7 +377,7 @@ def process_metering(
                 billed_dimensions,
                 metering_time,
                 next_bill_time,
-                billed_records=billable_records
+                remaining_records=remaining_records
             )
 
             data['usage'] = billable_usage
