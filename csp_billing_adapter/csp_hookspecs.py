@@ -79,8 +79,11 @@ def get_account_info(config: Config) -> dict:
         in the following format:
 
         {
-            'account_id': '123456789',
-            'arch': 'x86_64',
+            'csp_specific': 'data',
+            ...
             'cloud_provider': 'local'
         }
+
+        Where csp_specific data is any number of keys with
+        relevant data.
     """
