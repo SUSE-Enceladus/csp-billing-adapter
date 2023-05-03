@@ -57,12 +57,9 @@ def get_date_delta(
             ) from exc
 
 
-def get_next_bill_time(
-    date: datetime.datetime,
-    billing_interval: str
-) -> datetime.datetime:
+def get_relative_period_delta(billing_interval: str):
     """
-    Determine the next billing date using provided date and billing interval
+    Determine the relative period delta for the specified periodicity.
     """
     kwargs = {}
 
@@ -73,4 +70,24 @@ def get_next_bill_time(
     elif billing_interval == 'test':
         kwargs['minutes'] = 5
 
-    return date + relativedelta(**kwargs)
+    return relativedelta(**kwargs)
+
+
+def get_next_bill_time(
+    date: datetime.datetime,
+    billing_interval: str
+) -> datetime.datetime:
+    """
+    Determine the next billing date using provided date and billing interval
+    """
+    return date + get_relative_period_delta(billing_interval)
+
+
+def get_prev_bill_time(
+    date: datetime.datetime,
+    billing_interval: str
+) -> datetime.datetime:
+    """
+    Determine the prev billing date using provided date and billing interval
+    """
+    return date - get_relative_period_delta(billing_interval)

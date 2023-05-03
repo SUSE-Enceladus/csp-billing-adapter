@@ -99,3 +99,27 @@ def test_good_get_next_bill_time_test():
         datetime.datetime(2023, 4, 20, 13, 8, 30),
         'test') == \
         datetime.datetime(2023, 4, 20, 13, 13, 30)
+
+
+def test_good_get_prev_bill_time_hourly():
+    """Test working utils.get_prev_bill_time"""
+    assert utils.get_prev_bill_time(
+        datetime.datetime(2023, 4, 20, 14, 8, 30),
+        'hourly') == \
+        datetime.datetime(2023, 4, 20, 13, 8, 30)
+
+
+def test_good_get_prev_bill_time_monthly():
+    """Test working utils.get_prev_bill_time"""
+    assert utils.get_prev_bill_time(
+        datetime.datetime(2023, 5, 20, 13, 8, 30),
+        'monthly') == \
+        datetime.datetime(2023, 4, 20, 13, 8, 30)
+
+
+def test_good_get_prev_bill_time_test():
+    """Test working utils.get_prev_bill_time"""
+    assert utils.get_prev_bill_time(
+        datetime.datetime(2023, 4, 20, 13, 13, 30),
+        'test') == \
+        datetime.datetime(2023, 4, 20, 13, 8, 30)

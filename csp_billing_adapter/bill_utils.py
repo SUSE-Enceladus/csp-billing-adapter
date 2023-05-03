@@ -25,6 +25,7 @@ from csp_billing_adapter.csp_cache import cache_meter_record
 from csp_billing_adapter.utils import (
     date_to_string,
     get_next_bill_time,
+    get_prev_bill_time,
     get_now,
     get_date_delta,
     string_to_date
@@ -77,7 +78,7 @@ def get_average_usage(metric: str, usage_records: list) -> int:
 def get_billable_usage(
     usage_records: list,
     config: Config,
-    empty_usage: False
+    empty_usage: bool = False
 ) -> dict:
     """
     Processes the provided 'usage_records' to determine the billable
@@ -93,7 +94,9 @@ def get_billable_usage(
     hourly, to a CSP than we want to submit actual billable usage,
     which may be on a monthly cadence.
 
-    :param usage_records: The list of usage records to process.
+    :param usage_records:
+        The list of usage records to process, which has already been
+        filtered to contain entries within the current billing period.
     :param config:
         The configuration specifying the metrics that need to be
         processed in the usage records list.
@@ -201,6 +204,65 @@ def get_billing_dimensions(
     return billed_dimensions
 
 
+def filter_usage_records_by_date_range(
+    usage_records: list,
+    range_start: str,
+    range_end: str
+) -> list:
+    """
+    Returns the list of 'usage_records' filtered to remove records
+    that fall outside the date range, starting at 'range_start' up
+    to, but not including, 'range_end'.
+
+    :param usage_records: The list of usage records to be filtered.
+    :param range_start: The inclusive start of the date range.
+    :param range_end: The exclusive end of the date range.
+    :return:
+        The set of usage records that falls within the specified
+        date range.
+    """
+    return [record for record in usage_records
+            if range_start <= record['reporting_time'] < range_end]
+
+
+def filter_usage_records_in_billing_period(
+    usage_records: list,
+    config: Config,
+    billing_period_end: str
+) -> list:
+    """
+    Returns the list of 'usage_records' filtered to remove records
+    that fall outside the billing period ending at 'billing_period_end',
+    using the billing period duration specified in 'config'.
+
+    :param usage_records: The list of usage records to be filtered.
+    :param config:
+        The configuration specifying the metrics that need to be
+        processed in the usage records list.
+    :param billing_period_end:
+        The end of the current billing period, which is used to
+        determine the appropriate set of records to filter onG.
+    :return:
+        The set of usage records that falls within the billing period
+        that ending at 'billing_period_end'.
+    """
+    # determine time range to filter records for
+    range_end = string_to_date(billing_period_end)
+    range_start = get_prev_bill_time(
+        range_end,
+        config.billing_interval
+    )
+
+    # retrieve the records that fall within the specified range
+    filtered_records = filter_usage_records_by_date_range(
+        usage_records,
+        date_to_string(range_start),
+        date_to_string(range_end)
+    )
+
+    return filtered_records
+
+
 def process_metering(
     config: Config,
     cache: dict,
@@ -246,8 +308,22 @@ def process_metering(
     """
     now = get_now()
 
+    # select usage records appropriate for this billing period
+    usage_records = cache.get('usage_records', [])
+    billing_period_end = cache.get('next_bill_time')
+    billable_records = filter_usage_records_in_billing_period(
+        usage_records,
+        config,
+        billing_period_end
+    )
+
+    # the remaining records not selected as billable
+    remaining_records = [record for record in usage_records
+                         if record not in billable_records]
+
+    # determine billable usage and associated billable dimensions
     billable_usage = get_billable_usage(
-        cache.get('usage_records', []),
+        billable_records,
         config,
         empty_usage=empty_metering
     )
@@ -300,7 +376,8 @@ def process_metering(
                 record_id,
                 billed_dimensions,
                 metering_time,
-                next_bill_time
+                next_bill_time,
+                remaining_records=remaining_records
             )
 
             data['usage'] = billable_usage
