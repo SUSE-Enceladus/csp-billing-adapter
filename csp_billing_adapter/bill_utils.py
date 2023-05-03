@@ -22,6 +22,9 @@ metrics specified in the provided config.
 import math
 
 from csp_billing_adapter.csp_cache import cache_meter_record
+from csp_billing_adapter.exceptions import (
+    NoMatchingVolumeDimensionError
+)
 from csp_billing_adapter.utils import (
     date_to_string,
     get_next_bill_time,
@@ -162,6 +165,11 @@ def get_volume_dimensions(
 
         # All usage is billed in volume to the matching dimension
         break
+    else:
+        raise NoMatchingVolumeDimensionError(
+            usage_metric,
+            usage
+        )
 
 
 def get_billing_dimensions(

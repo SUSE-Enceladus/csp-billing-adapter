@@ -33,6 +33,9 @@ from csp_billing_adapter.csp_cache import (
 from csp_billing_adapter.csp_config import (
     create_csp_config,
 )
+from csp_billing_adapter.exceptions import (
+    CSPBillingAdapterException
+)
 from csp_billing_adapter.utils import (
     date_to_string,
     get_now,
@@ -147,6 +150,11 @@ def main() -> None:
     except SystemExit as e:
         # user exception, program aborted by user
         sys.exit(e)
+    except CSPBillingAdapterException as e:
+        # csp_billing_adapter specific exception
+        log.error('CSP Billing Adapter error: {0}'.format(e))
+        traceback.print_exc()
+        sys.exit(2)
     except Exception as e:
         # exception we did no expect, show python backtrace
         log.error('Unexpected error: {0}'.format(e))

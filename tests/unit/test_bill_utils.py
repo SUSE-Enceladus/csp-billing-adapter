@@ -23,7 +23,8 @@ import datetime
 from unittest import mock
 
 from pytest import (
-    mark
+    mark,
+    raises
 )
 
 from csp_billing_adapter.bill_utils import (
@@ -40,6 +41,9 @@ from csp_billing_adapter.csp_cache import (
     create_cache
 )
 from csp_billing_adapter.csp_config import create_csp_config
+from csp_billing_adapter.exceptions import (
+    NoMatchingVolumeDimensionError
+)
 from csp_billing_adapter.utils import (
     date_to_string,
     string_to_date,
@@ -328,6 +332,28 @@ def test_get_volume_dimensions(cba_config):
 
         assert test_tiers[metric] in billed_dimensions
         assert billed_dimensions[test_tiers[metric]] == usage
+
+
+@mark.config('config_broken_dimensions.yaml')
+def test_get_volume_dimensions_invalid(cba_config):
+    test_billable_usage = {
+        "managed_node_count": 501
+    }
+
+    for metric, usage in test_billable_usage.items():
+        metric_dimensions = cba_config.usage_metrics[metric]['dimensions']
+        billed_dimensions = {}
+
+        with raises(NoMatchingVolumeDimensionError) as e:
+            get_volume_dimensions(
+                usage_metric=metric,
+                usage=usage,
+                metric_dimensions=metric_dimensions,
+                billed_dimensions=billed_dimensions
+            )
+
+        assert e.value.metric == metric
+        assert e.value.value == usage
 
 
 @mark.config('config_testing_mixed.yaml')
