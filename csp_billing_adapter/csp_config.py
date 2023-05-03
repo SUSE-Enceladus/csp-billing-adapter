@@ -44,6 +44,7 @@ def create_csp_config(
         'billing_api_access_ok': True,
         'timestamp': date_to_string(now),
         'expire': expire,
+        'customer_csp_data': hook.get_account_info(config=config),
         'errors': []
     }
 

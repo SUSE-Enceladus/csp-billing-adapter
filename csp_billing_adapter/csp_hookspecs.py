@@ -74,5 +74,16 @@ def get_account_info(config: Config) -> dict:
     Retrieves the account information from the loaded plugin
 
     :param config: The application configuration dictionary
-    :return: Returns a dictionary of the account info from CSP
+    :return:
+        Returns a dictionary of the account info from CSP
+        in the following format:
+
+        {
+            'csp_specific': 'data',
+            ...
+            'cloud_provider': 'local'
+        }
+
+        Where csp_specific data is any number of keys with
+        relevant data.
     """
