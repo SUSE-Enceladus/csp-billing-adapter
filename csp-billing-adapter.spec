@@ -65,7 +65,7 @@ to report billing information to the CSP API.
 
 %files %{python_files}
 %license LICENSE
-%doc README.md CONTRIBUTING.md
+%doc README.md CONTRIBUTING.md CHANGES.md
 %{python_sitelib}/csp_billing_adapter
 %{python_sitelib}/csp_billing_adapter-%{version}*-info
 %{_bindir}/%{name}
