@@ -24,7 +24,6 @@ import math
 
 from csp_billing_adapter.csp_cache import cache_meter_record
 from csp_billing_adapter.exceptions import (
-    CSPBillingAdapterException,
     NoMatchingVolumeDimensionError
 )
 from csp_billing_adapter.utils import (
@@ -340,27 +339,12 @@ def process_metering(
         empty_usage=empty_metering
     )
 
-    # attempt to determine the appropriate billing dimensions,
-    # logging the exception and returning immediately on failure
     try:
         billed_dimensions = get_billing_dimensions(
             config,
             billable_usage
         )
-    except CSPBillingAdapterException as e:
-        log.exception(e)
-        hook.update_csp_config(
-            config=config,
-            csp_config={
-                'timestamp': date_to_string(now),
-                'billing_api_access_ok': False,
-                'errors': [str(e)]
-            },
-            replace=False
-        )
-        return now
 
-    try:
         record_id = hook.meter_billing(
             config=config,
             dimensions=billed_dimensions,

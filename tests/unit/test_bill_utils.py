@@ -334,8 +334,30 @@ def test_get_volume_dimensions(cba_config):
         assert billed_dimensions[test_tiers[metric]] == usage
 
 
-@mark.config('config_broken_dimensions.yaml')
-def test_get_volume_dimensions_invalid(cba_config):
+@mark.config('config_dimensions_gap.yaml')
+def test_get_volume_dimensions_gap(cba_config):
+    test_billable_usage = {
+        "managed_node_count": 501
+    }
+
+    for metric, usage in test_billable_usage.items():
+        metric_dimensions = cba_config.usage_metrics[metric]['dimensions']
+        billed_dimensions = {}
+
+        with raises(NoMatchingVolumeDimensionError) as e:
+            get_volume_dimensions(
+                usage_metric=metric,
+                usage=usage,
+                metric_dimensions=metric_dimensions,
+                billed_dimensions=billed_dimensions
+            )
+
+        assert e.value.metric == metric
+        assert e.value.value == usage
+
+
+@mark.config('config_dimensions_no_tail.yaml')
+def test_get_volume_dimensions_no_tail(cba_config):
     test_billable_usage = {
         "managed_node_count": 501
     }
@@ -504,7 +526,7 @@ def test_process_metering(cba_pm, cba_config):
         assert test_csp_config['timestamp'] != csp_config_data['timestamp']
 
 
-@mark.config('config_broken_dimensions.yaml')
+@mark.config('config_dimensions_gap.yaml')
 def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
     metric = list(cba_config.usage_metrics.keys())[0]  # first defined metric
 
