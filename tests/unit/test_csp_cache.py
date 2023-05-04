@@ -33,8 +33,6 @@ def test_create_cache(cba_pm, cba_config):
     # cache should initially be empty
     assert cba_pm.hook.get_cache(config=cba_config) == {}
 
-    print(f'config: {cba_config!r}')
-
     create_cache(cba_pm.hook, cba_config)
 
     cache = cba_pm.hook.get_cache(config=cba_config)

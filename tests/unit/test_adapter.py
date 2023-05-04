@@ -27,6 +27,9 @@ from csp_billing_adapter.adapter import (
     main as cba_main,
     setup_logging
 )
+from csp_billing_adapter.exceptions import (
+    NoMatchingVolumeDimensionError
+)
 from csp_billing_adapter.utils import (
     get_now,
     string_to_date
@@ -261,13 +264,22 @@ def test_main(mock_get_config, mock_get_pm, cba_pm, cba_config):
     # test catching SystemExit
     with mock.patch(
         'csp_billing_adapter.adapter.event_loop_handler',
-        side_effect=SystemExit(2)
+        side_effect=SystemExit(99)
+    ):
+        with pytest.raises(SystemExit) as e:
+            cba_main()
+        assert e.value.code == 99
+
+    # test catching CSP Billing Adapter exception
+    with mock.patch(
+        'csp_billing_adapter.adapter.event_loop_handler',
+        side_effect=NoMatchingVolumeDimensionError('metric', 9999)
     ):
         with pytest.raises(SystemExit) as e:
             cba_main()
         assert e.value.code == 2
 
-    # test catching Ctrl-C
+    # test catching generic exception
     with mock.patch(
         'csp_billing_adapter.adapter.event_loop_handler',
         side_effect=Exception('Mock Failure')

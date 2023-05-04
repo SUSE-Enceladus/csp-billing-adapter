@@ -19,9 +19,13 @@ Utility functions for calculating CSP billing details for the usage
 metrics specified in the provided config.
 """
 
+import logging
 import math
 
 from csp_billing_adapter.csp_cache import cache_meter_record
+from csp_billing_adapter.exceptions import (
+    NoMatchingVolumeDimensionError
+)
 from csp_billing_adapter.utils import (
     date_to_string,
     get_next_bill_time,
@@ -31,6 +35,8 @@ from csp_billing_adapter.utils import (
     string_to_date
 )
 from csp_billing_adapter.config import Config
+
+log = logging.getLogger('CSPBillingAdapter')
 
 
 def get_max_usage(metric: str, usage_records: list) -> int:
@@ -162,6 +168,11 @@ def get_volume_dimensions(
 
         # All usage is billed in volume to the matching dimension
         break
+    else:
+        raise NoMatchingVolumeDimensionError(
+            usage_metric,
+            usage
+        )
 
 
 def get_billing_dimensions(
@@ -327,12 +338,13 @@ def process_metering(
         config,
         empty_usage=empty_metering
     )
-    billed_dimensions = get_billing_dimensions(
-        config,
-        billable_usage
-    )
 
     try:
+        billed_dimensions = get_billing_dimensions(
+            config,
+            billable_usage
+        )
+
         record_id = hook.meter_billing(
             config=config,
             dimensions=billed_dimensions,
@@ -340,9 +352,11 @@ def process_metering(
             dry_run=False
         )
     except Exception as e:
+        log.exception(e)
         hook.update_csp_config(
             config=config,
             csp_config={
+                'timestamp': date_to_string(now),
                 'billing_api_access_ok': False,
                 'errors': [str(e)]
             },
