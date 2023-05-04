@@ -20,9 +20,10 @@ import yaml
 import pytest
 
 from csp_billing_adapter import (
-    product_api,
+    local_csp,
     memory_cache,
-    memory_csp_config
+    memory_csp_config,
+    product_api
 )
 
 from csp_billing_adapter.adapter import get_plugin_manager
@@ -95,6 +96,7 @@ def cba_pm(cba_config):
     pm.register(product_api)
     pm.register(memory_cache)
     pm.register(memory_csp_config)
+    pm.register(local_csp)
 
     # reset the in-memory cache to empty
     pm.hook.save_cache(config=cba_config, cache=dict())

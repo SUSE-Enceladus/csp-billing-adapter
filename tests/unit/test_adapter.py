@@ -19,6 +19,12 @@ from unittest import mock
 import pytest
 
 import csp_billing_adapter
+from csp_billing_adapter import (
+    local_csp,
+    memory_cache,
+    memory_csp_config,
+    product_api
+)
 from csp_billing_adapter.adapter import (
     event_loop_handler,
     get_config,
@@ -45,8 +51,15 @@ def test_get_plugin_manager(cba_config):
     """Verify that get_plugin_manager() works correctly."""
     pm = get_plugin_manager()
 
-    # NOTE: we may need to explicitly pm.register(local_csp) here if
-    # we stop registering it in get_plugin_manager()
+    # the testing plugins shouldn't be registered
+    assert pm.is_registered(local_csp) is False
+    assert pm.is_registered(memory_cache) is False
+    assert pm.is_registered(memory_csp_config) is False
+    assert pm.is_registered(product_api) is False
+
+    # register the local_csp plugin so that we can call a
+    # hook implementation that it provides
+    pm.register(local_csp)
 
     assert pm.hook.get_csp_name(config=cba_config) == "local"
 

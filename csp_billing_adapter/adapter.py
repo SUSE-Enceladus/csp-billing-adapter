@@ -42,11 +42,10 @@ from csp_billing_adapter.utils import (
     string_to_date
 )
 from csp_billing_adapter.bill_utils import process_metering
-from csp_billing_adapter import hookspecs
-from csp_billing_adapter import csp_hookspecs
-from csp_billing_adapter import storage_hookspecs
 from csp_billing_adapter import (
-    local_csp,
+    csp_hookspecs,
+    hookspecs,
+    storage_hookspecs
 )
 
 DEFAULT_CONFIG_PATH = '/etc/csp_billing_adapter/config.yaml'
@@ -66,7 +65,6 @@ def get_plugin_manager() -> pluggy.PluginManager:
     pm.add_hookspecs(csp_hookspecs)
     pm.add_hookspecs(storage_hookspecs)
     pm.load_setuptools_entrypoints('csp_billing_adapter')
-    pm.register(local_csp)
     return pm
 
 
