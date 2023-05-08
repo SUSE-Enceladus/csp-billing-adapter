@@ -42,10 +42,11 @@ def meter_billing(
     dry_run: bool
 ) -> str:
     """Simulate a CSP metering operation with a 5% chance of failure."""
-    log.warning(f'Mock CSP received metering of: {str(dimensions)}')
+    log.info('Mock CSP received metering of: %s', dimensions)
     seed = randrange(20)
 
     if seed == 4:
+        log.warning("Simulating failed metering operation")
         raise Exception('Unable to submit meter usage. Payment not billed!')
     else:
         return str(uuid.uuid4().hex)

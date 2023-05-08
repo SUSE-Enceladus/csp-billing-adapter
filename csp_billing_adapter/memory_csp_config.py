@@ -58,4 +58,6 @@ def update_csp_config(config: Config, csp_config: dict, replace: bool):
 def save_csp_config(config: Config, csp_config: dict):
     """Save specified content as new in-memory csp_config contents."""
 
+    log.info("Saving CSP Config Content: %s", csp_config)
+
     update_csp_config(config, csp_config, replace=True)

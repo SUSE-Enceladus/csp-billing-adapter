@@ -16,12 +16,15 @@
 
 """Pluggy hook implementations emulating CSP usage data retrieval."""
 
+import logging
 import random
 
 import csp_billing_adapter
 
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.utils import get_now, date_to_string
+
+log = logging.getLogger('CSPBillingAdapter')
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
@@ -41,4 +44,7 @@ def get_usage_data(config: Config) -> dict:
         'managed_node_count': quantity,
         'reporting_time': date_to_string(get_now())
     }
+
+    log.info("Simulated Usage data: %s", usage)
+
     return usage

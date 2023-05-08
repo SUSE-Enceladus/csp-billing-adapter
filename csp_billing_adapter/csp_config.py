@@ -20,8 +20,12 @@ leverage Pluggy hooks to perform the implementation specific
 low-level CSP config management operations.
 """
 
+import logging
+
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.utils import get_now, date_to_string, get_date_delta
+
+log = logging.getLogger('CSPBillingAdapter')
 
 
 def create_csp_config(
@@ -49,3 +53,5 @@ def create_csp_config(
     }
 
     hook.save_csp_config(config=config, csp_config=csp_config)
+
+    log.debug("CSP config initialized with: %s", csp_config)
