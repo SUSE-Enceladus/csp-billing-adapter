@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 
+import logging
 import pathlib
 import yaml
 
@@ -105,3 +106,8 @@ def cba_pm(cba_config):
     pm.hook.save_csp_config(config=cba_config, csp_config=dict())
 
     return pm
+
+
+@pytest.fixture
+def cba_log():
+    return logging.getLogger('CSPBillingAdapter')

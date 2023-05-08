@@ -74,10 +74,15 @@ def setup_logging(hook) -> logging.Logger:
     log = logging.getLogger('CSPBillingAdapter')
     log.setLevel(logging.INFO)
 
+    log.info("CSPBillingAdapter logging setup complete")
     return log
 
 
-def get_config(config_path, hook):
+def get_config(
+    config_path,
+    hook,
+    log: logging.Logger
+) -> Config:
     """Load the specified config file."""
 
     config = Config.load_from_file(
@@ -85,39 +90,67 @@ def get_config(config_path, hook):
         hook
     )
 
+    # If there is anything sensitive in config we may want to add
+    # a __str__() method that sanitizes it.
+    log.info("Config loaded: %s", config)
+
     return config
 
 
-def initial_adapter_setup(hook, config: Config) -> None:
+def initial_adapter_setup(
+    hook,
+    config: Config,
+    log: logging.Logger
+) -> None:
     """Initial setup before starting event loop."""
 
+    log.debug("Setting up the adapter via hook")
     hook.setup_adapter(config=config)
 
+    log.debug("Initializing the csp_config")
     csp_config = hook.get_csp_config(config=config)
     if not csp_config:
         create_csp_config(hook, config)
 
+    log.debug("Initializing the cache")
     cache = hook.get_cache(config=config)
     if not cache:
         create_cache(hook, config)
 
+    log.info("Adapter setup complete")
+
 
 def event_loop_handler(
     hook,
-    config: Config
+    config: Config,
+    log: logging.Logger
 ) -> datetime.datetime:
     """Perform the event loop processing actions."""
+    log.info('Starting event loop processing')
+
     usage = hook.get_usage_data(config=config)
+    log.debug('Retrieved usage data: %s', usage)
+
     add_usage_record(hook, config, usage)
 
     cache = hook.get_cache(config=config)
     now = get_now()
 
+    log.debug(
+        "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
+        date_to_string(now),
+        cache['next_reporting_time'],
+        cache['next_bill_time']
+    )
+
     if now >= string_to_date(cache['next_bill_time']):
+        log.info('Attempt a billing cycle update')
         process_metering(config, cache, hook)
     elif now >= string_to_date(cache['next_reporting_time']):
+        log.info('Attempt a reporting cycle update')
         process_metering(config, cache, hook, empty_metering=True)
 
+    log.info('Finishing event loop processing')
     return now
 
 
@@ -132,16 +165,17 @@ def main() -> None:
 
         config = get_config(
             config_path,
-            pm.hook
+            pm.hook,
+            log
         )
 
-        initial_adapter_setup(pm.hook, config)
+        initial_adapter_setup(pm.hook, config, log)
 
         while True:
-            now = event_loop_handler(pm.hook, config)
-
+            now = event_loop_handler(pm.hook, config, log)
             log.info("Processed event loop at %s", date_to_string(now))
 
+            log.debug("Sleeping for %d seconds", config.query_interval)
             time.sleep(config.query_interval)
     except KeyboardInterrupt:
         sys.exit(0)

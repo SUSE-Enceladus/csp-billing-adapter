@@ -71,19 +71,19 @@ def test_setup_logging(cba_pm):
     assert log.name == "CSPBillingAdapter"
 
 
-def test_get_config(cba_pm, cba_config, cba_config_path):
+def test_get_config(cba_pm, cba_config, cba_config_path, cba_log):
     """Verify correct operation of get_config()."""
-    config = get_config(cba_config_path, cba_pm.hook)
+    config = get_config(cba_config_path, cba_pm.hook, cba_log)
 
     assert config == cba_config
 
 
-def test_initial_adapter_setup(cba_pm, cba_config):
+def test_initial_adapter_setup(cba_pm, cba_config, cba_log):
     """
     Verify that the initial_adapter_setup() works correctly using
     in-memory plugins.
     """
-    initial_adapter_setup(cba_pm.hook, cba_config)
+    initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
 
     cache = cba_pm.hook.get_cache(config=cba_config)
     assert cache != {}
@@ -93,7 +93,7 @@ def test_initial_adapter_setup(cba_pm, cba_config):
 
 
 @mock.patch('csp_billing_adapter.local_csp.randrange')
-def test_event_loop_handler(mock_randrange, cba_pm, cba_config):
+def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     """Verify correct operation of event_loop_handler()."""
     # ensure meter_billing will succeed
     mock_randrange.return_value = 0
@@ -102,7 +102,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config):
     # inside the csp_billing_adapter.adapter.main()
     log = setup_logging(cba_pm.hook)
     assert log.name == ('CSPBillingAdapter')
-    initial_adapter_setup(cba_pm.hook, cba_config)
+    initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
 
     # validate the initial state of the cache
     cache = cba_pm.hook.get_cache(config=cba_config)
@@ -133,7 +133,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config):
     # and simulate the first run of the event loop.
     with mock.patch('csp_billing_adapter.adapter.get_now',
                     return_value=event_time):
-        loop_event_time = event_loop_handler(cba_pm.hook, cba_config)
+        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, log)
         assert loop_event_time == event_time
 
         # This run should have added a new usage_record, but
@@ -164,7 +164,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config):
 
     with mock.patch('csp_billing_adapter.adapter.get_now',
                     return_value=event_time):
-        loop_event_time = event_loop_handler(cba_pm.hook, cba_config)
+        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, log)
         assert loop_event_time == event_time
 
         # This run should have added another usage_record, but
@@ -195,7 +195,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config):
 
     with mock.patch('csp_billing_adapter.adapter.get_now',
                     return_value=event_time):
-        loop_event_time = event_loop_handler(cba_pm.hook, cba_config)
+        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, log)
         assert loop_event_time == event_time
 
         # This run should in the usage_records list being cleared
@@ -232,7 +232,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config):
 
     with mock.patch('csp_billing_adapter.adapter.get_now',
                     return_value=event_time):
-        loop_event_time = event_loop_handler(cba_pm.hook, cba_config)
+        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, log)
         assert loop_event_time == event_time
 
         # A new usage record should have been added to the usage
@@ -265,9 +265,9 @@ def test_main(mock_get_config, mock_get_pm, cba_pm, cba_config):
     mock_get_pm.return_value = cba_pm
     mock_get_config.return_value = cba_config
 
-    # test catching Ctrl-C
+    # test catching Ctrl-C from time.sleep()
     with mock.patch(
-        'csp_billing_adapter.adapter.event_loop_handler',
+        'csp_billing_adapter.adapter.time.sleep',
         side_effect=KeyboardInterrupt('Mock Ctrl-C')
     ):
         with pytest.raises(SystemExit) as e:

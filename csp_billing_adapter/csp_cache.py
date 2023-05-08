@@ -20,6 +20,8 @@ Pluggy hooks to perform the implementation specific low-level cache
 management operations.
 """
 
+import logging
+
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.utils import (
     get_now,
@@ -27,6 +29,8 @@ from csp_billing_adapter.utils import (
     get_next_bill_time,
     get_date_delta
 )
+
+log = logging.getLogger('CSPBillingAdapter')
 
 
 def create_cache(hook, config: Config) -> None:
@@ -52,6 +56,7 @@ def create_cache(hook, config: Config) -> None:
         'last_bill': {}
     }
 
+    log.info("Initializing cache with: %s", cache)
     hook.save_cache(config=config, cache=cache)
 
 
@@ -67,9 +72,11 @@ def add_usage_record(hook, config: Config, record: dict) -> None:
     :param config:
         The configuration settings associated with the CSP.
     """
+
     cache = hook.get_cache(config=config)
 
     if not cache.get('usage_records', []):
+        log.info('Initial usage record: %s', record)
         cache['usage_records'] = [record]
         hook.update_cache(config=config, cache=cache, replace=True)
     else:
@@ -77,8 +84,11 @@ def add_usage_record(hook, config: Config, record: dict) -> None:
 
         # Only include new usage records
         if record['reporting_time'] != last_record_time:
+            log.info('Appending usage record: %s', record)
             cache['usage_records'].append(record)
             hook.update_cache(config=config, cache=cache, replace=True)
+        else:
+            log.info('Skipping duplicate usage record: %s', record)
 
 
 def cache_meter_record(
@@ -113,7 +123,7 @@ def cache_meter_record(
     :param remaining_records:
         The list of records not used to generate the most recent bill.
     """
-    data = {
+    cache_updates = {
         'last_bill': {
             'dimensions': dimensions,
             'record_id': record_id,
@@ -123,4 +133,5 @@ def cache_meter_record(
         'next_bill_time': next_bill_time
     }
 
-    hook.update_cache(config=config, cache=data, replace=False)
+    log.info("Updating cache with: %s", cache_updates)
+    hook.update_cache(config=config, cache=cache_updates, replace=False)

@@ -53,9 +53,17 @@ def get_max_usage(metric: str, usage_records: list) -> int:
     # In case of no records usage is 0
     # This prevents value error when calling max
     if not usage_records:
+        log.debug("No usage records, returning 0")
         return 0
 
     max_usage = max(record.get(metric, 0) for record in usage_records)
+
+    log.info(
+        "Metric: %s, max: %d, records: %s",
+        repr(metric),
+        max_usage,
+        usage_records
+    )
     return max_usage
 
 
@@ -73,11 +81,18 @@ def get_average_usage(metric: str, usage_records: list) -> int:
     # In case of no records usage is 0
     # This prevents divide by zero to get average
     if not usage_records:
+        log.debug("No usage records, returning 0")
         return 0
 
     total_usage = sum(record.get(metric, 0) for record in usage_records)
     average_usage = math.ceil(total_usage / len(usage_records))
 
+    log.info(
+        "Metric: %s, average = %d, records: %s",
+        repr(metric),
+        average_usage,
+        usage_records
+    )
     return average_usage
 
 
@@ -118,6 +133,7 @@ def get_billable_usage(
     billable_usage = {}
 
     if empty_usage:
+        log.debug("Return 0 for all metrics, empty_usage set")
         return {metric: 0 for metric in config.usage_metrics}
 
     for metric, data in config.usage_metrics.items():
@@ -131,6 +147,11 @@ def get_billable_usage(
             data.get('minimum_consumption', 0)
         )
 
+    log.info(
+        "Billable usage: %s, records: %s",
+        billable_usage,
+        usage_records
+    )
     return billable_usage
 
 
@@ -159,16 +180,30 @@ def get_volume_dimensions(
     """
     for dimension in metric_dimensions:
         if 'min' in dimension and usage < dimension['min']:
+            log.debug("Skipping as usage < min")
             continue
 
         if 'max' in dimension and usage > dimension['max']:
+            log.debug("Skipping as usage < min")
             continue
 
         billed_dimensions[dimension['dimension']] = usage
 
+        log.info(
+            "Metric: %s=%d, Volume dimension: %s",
+            usage_metric,
+            usage,
+            billed_dimensions[dimension['dimension']]
+        )
+
         # All usage is billed in volume to the matching dimension
         break
     else:
+        log.error(
+            "Failed to find a matching dimension entry for %s=%d",
+            usage_metric,
+            usage
+        )
         raise NoMatchingVolumeDimensionError(
             usage_metric,
             usage
@@ -197,11 +232,21 @@ def get_billing_dimensions(
     """
     billed_dimensions = {}
 
+    log.debug(
+        "Determining billable dimensions for usage: %s",
+        billable_usage
+    )
+
     for usage_metric, usage in billable_usage.items():
         metric_config = config.usage_metrics[usage_metric]
         consumption_reporting = metric_config['consumption_reporting']
 
         if consumption_reporting == 'volume':
+            log.debug(
+                "Determining volume dimensions for %s=%d",
+                usage_metric,
+                usage
+            )
             get_volume_dimensions(
                 usage_metric,
                 usage,
@@ -212,6 +257,11 @@ def get_billing_dimensions(
             # Stubbed for different consumption reporting models in future
             pass
 
+    log.info(
+        "Determined billable dimensions %s for usage %s",
+        billed_dimensions,
+        billable_usage
+    )
     return billed_dimensions
 
 
@@ -232,6 +282,11 @@ def filter_usage_records_by_date_range(
         The set of usage records that falls within the specified
         date range.
     """
+    log.info(
+        "Filtering records for %s <= reporting_time < %s",
+        range_start,
+        range_end
+    )
     return [record for record in usage_records
             if range_start <= record['reporting_time'] < range_end]
 
@@ -270,6 +325,8 @@ def filter_usage_records_in_billing_period(
         date_to_string(range_start),
         date_to_string(range_end)
     )
+
+    log.debug("Filtered records: %s", filtered_records)
 
     return filtered_records
 
@@ -318,6 +375,11 @@ def process_metering(
         operation.
     """
     now = get_now()
+    log.debug(
+        "Processing metering at time %s, empty_metering=%s",
+        date_to_string(now),
+        empty_metering
+    )
 
     # select usage records appropriate for this billing period
     usage_records = cache.get('usage_records', [])
@@ -327,10 +389,12 @@ def process_metering(
         config,
         billing_period_end
     )
+    log.debug("Billable records: %s", billable_records)
 
     # the remaining records not selected as billable
     remaining_records = [record for record in usage_records
                          if record not in billable_records]
+    log.debug("Remaining records: %s", remaining_records)
 
     # determine billable usage and associated billable dimensions
     billable_usage = get_billable_usage(
@@ -340,9 +404,19 @@ def process_metering(
     )
 
     try:
+        log.debug(
+            "Attempting to billing processing for %s",
+            billable_usage
+        )
+
         billed_dimensions = get_billing_dimensions(
             config,
             billable_usage
+        )
+
+        log.debug(
+            "Submitting billing for %s",
+            billed_dimensions
         )
 
         record_id = hook.meter_billing(
@@ -363,12 +437,21 @@ def process_metering(
             replace=False
         )
     else:
+        log.info(
+            "Metering submitted, record_id: %s",
+            record_id
+        )
+
         metering_time = date_to_string(now)
         next_reporting_time = date_to_string(
             get_date_delta(now, config.reporting_interval)
         )
 
-        data = {
+        cache_updates = {
+            'next_reporting_time': next_reporting_time
+        }
+
+        csp_config_updates = {
             'billing_api_access_ok': True,
             'errors': [],
             'timestamp': metering_time,
@@ -383,6 +466,10 @@ def process_metering(
                     config.billing_interval
                 )
             )
+            log.debug(
+                "Billable metering submitted, next bill time: %s",
+                next_bill_time
+            )
 
             cache_meter_record(
                 hook,
@@ -394,16 +481,23 @@ def process_metering(
                 remaining_records=remaining_records
             )
 
-            data['usage'] = billable_usage
-            data['last_billed'] = metering_time
+            log.debug(
+                "Adding metering details to csp_config updates: %s",
+                csp_config_updates
+            )
+            csp_config_updates['usage'] = billable_usage
+            csp_config_updates['last_billed'] = metering_time
 
+        log.info("Updating CSP config with: %s", csp_config_updates)
         hook.update_csp_config(
             config=config,
-            csp_config=data,
+            csp_config=csp_config_updates,
             replace=False
         )
+
+        log.info("Updating cache with: %s", cache_updates)
         hook.update_cache(
             config=config,
-            cache={'next_reporting_time': next_reporting_time},
+            cache=cache_updates,
             replace=False
         )
