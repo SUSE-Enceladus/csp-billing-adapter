@@ -56,4 +56,6 @@ def update_cache(config: Config, cache: dict, replace: bool):
 def save_cache(config: Config, cache: dict):
     """Save specified content as new in-memory cache contents."""
 
+    log.info("Saving Cache Content: %s", cache)
+
     update_cache(config, cache, replace=True)

@@ -14,8 +14,11 @@
 # limitations under the License.
 #
 """config.py is part of csp-billing-adapter and defines the Config class"""
+import logging
 import yaml
 from yaml.parser import ParserError
+
+log = logging.getLogger('CSPBillingAdapter')
 
 
 class Config(dict):
@@ -37,21 +40,39 @@ class Config(dict):
         super().__init__(data)
         for key, val in data.items():
             if isinstance(val, (list, tuple, set)):
+                log.debug(
+                    "Converting collection %s to: %s",
+                    repr(val),
+                    self.__class__.__name__
+                )
                 attr = [self.parse_value(item) for item in val]
                 setattr(self, key, attr)
             else:
                 setattr(self, key, self.parse_value(val))
 
-    @staticmethod
-    def parse_value(item):
+        log.debug("Config: %s %s", self)
+
+    def parse_value(self, item):
         """recursive evaluation if item is a dict"""
-        return Config(item) if isinstance(item, dict) else item
+        if isinstance(item, dict):
+            log.debug(
+                "Converting dict %s to: %s",
+                item,
+                self.__class__.__name__
+            )
+            parsed_item = self.__class__(item)
+        else:
+            log.debug("Using original item: %s", item)
+            parsed_item = item
+
+        log.debug("Parsed item: %s", parsed_item)
+
+        return parsed_item
 
     @staticmethod
     def load_defaults(data, hook):
         """
-        Load default settings/values for any plugins that provide
-        defaults as part of their implementation
+        Merge provided config data over any plugin provided default settings.
 
         Args:
             data (dict): A dict of the current settings
@@ -63,13 +84,21 @@ class Config(dict):
 
         defaults = {}
         hook.load_defaults(defaults=defaults)
-        return {**defaults, **data}
+
+        log.debug("Config defaults loaded: %s", defaults)
+
+        updated_data = {**defaults, **data}
+
+        log.debug("Merged config with defaults: %s", updated_data)
+
+        return updated_data
 
     @classmethod
     def load_from_file(cls, filename, hook):
         """
-        Load settings/values from the provided configuration file.
-        and any plugins that provide defaults as part of their implementation
+        Load settings/values from the specified YAML configuration file,
+        merging appropriately with any defaults that registered plugins may
+        provide.
 
         Args:
             filename (filepath): The path to csp-billing-adapter
@@ -86,6 +115,10 @@ class Config(dict):
                 yaml_data = yaml.safe_load(fh)
         except (FileNotFoundError, ParserError) as exc:
             raise exc
+        log.debug(
+            "Loaded YAML %s as: %s",
+            filename,
+            yaml_data
+        )
         data = cls.load_defaults(yaml_data, hook)
-
         return cls(data)
