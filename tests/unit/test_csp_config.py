@@ -19,8 +19,14 @@
 #
 
 import datetime
+from unittest import mock
+
+from pytest import raises
 
 from csp_billing_adapter.csp_config import create_csp_config
+from csp_billing_adapter.exceptions import (
+    FailedToSaveCSPConfigError
+)
 from csp_billing_adapter.utils import string_to_date
 
 
@@ -42,3 +48,19 @@ def test_create_csp_config(cba_pm, cba_config):
     delta = datetime.timedelta(seconds=cba_config.reporting_interval)
 
     assert timestamp + delta == expire
+
+
+def test_create_csp_config_save_exception(cba_pm, cba_config, caplog):
+    # csp_config should initially be empty
+    assert cba_pm.hook.get_csp_config(config=cba_config) == {}
+
+    # simulate save_csp_cache() hook raising an exception
+    error = Exception("Simulated save_csp_cache() hook Exception")
+    with mock.patch.object(
+        cba_pm.hook,
+        'save_csp_config',
+        side_effect=error
+    ):
+        with raises(FailedToSaveCSPConfigError):
+            create_csp_config(cba_pm.hook, cba_config)
+        assert str(error) in caplog.text

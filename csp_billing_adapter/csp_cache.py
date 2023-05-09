@@ -23,6 +23,9 @@ management operations.
 import logging
 
 from csp_billing_adapter.config import Config
+from csp_billing_adapter.exceptions import (
+    FailedToSaveCacheError
+)
 from csp_billing_adapter.utils import (
     get_now,
     date_to_string,
@@ -56,8 +59,16 @@ def create_cache(hook, config: Config) -> None:
         'last_bill': {}
     }
 
-    log.info("Initializing cache with: %s", cache)
-    hook.save_cache(config=config, cache=cache)
+    try:
+        hook.save_cache(config=config, cache=cache)
+    except Exception as exc:
+        log.error("Unable to save cache: %s", str(exc))
+        # raise an application specific exception that will be
+        # caught by the event loop in main() and cause an exit
+        # with a failure status.
+        raise FailedToSaveCacheError(str(exc)) from exc
+
+    log.info("Initialized cache with: %s", cache)
 
 
 def add_usage_record(hook, config: Config, record: dict) -> None:

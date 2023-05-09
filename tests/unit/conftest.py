@@ -87,9 +87,9 @@ def cba_config(cba_config_path):
 @pytest.fixture
 def cba_pm(cba_config):
     """
-    Fixture returning an initialized plugin manager instance, based
-    on supplied config. Also needs to reset the in-memory cache and
-    csp_config to empty to simulate a fresh start.
+    Fixture returning an initialized plugin manager instance, with
+    all the relevant testing plugins registered and the in-memory
+    cache and csp_config reset as empty to simulate a fresh start.
     """
     pm = get_plugin_manager()
 
