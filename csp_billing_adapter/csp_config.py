@@ -23,6 +23,9 @@ low-level CSP config management operations.
 import logging
 
 from csp_billing_adapter.config import Config
+from csp_billing_adapter.exceptions import (
+    FailedToSaveCSPConfigError
+)
 from csp_billing_adapter.utils import get_now, date_to_string, get_date_delta
 
 log = logging.getLogger('CSPBillingAdapter')
@@ -52,6 +55,13 @@ def create_csp_config(
         'errors': []
     }
 
-    hook.save_csp_config(config=config, csp_config=csp_config)
+    try:
+        hook.save_csp_config(config=config, csp_config=csp_config)
+    except Exception as exc:
+        # raise an application specific exception that will be
+        # caught by the event loop in main() and cause an exit
+        # with a failure status.
+        log.error("Unable to save CSP config: %s", str(exc))
+        raise FailedToSaveCSPConfigError(str(exc)) from exc
 
     log.debug("CSP config initialized with: %s", csp_config)

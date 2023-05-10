@@ -19,14 +19,18 @@
 #
 
 import datetime
+from unittest import mock
+
+from pytest import raises
 
 from csp_billing_adapter.csp_cache import (
     add_usage_record,
     cache_meter_record,
     create_cache
 )
-
-from pytest import raises
+from csp_billing_adapter.exceptions import (
+    FailedToSaveCacheError
+)
 
 
 def test_create_cache(cba_pm, cba_config):
@@ -52,6 +56,22 @@ def test_create_cache_bad_config(cba_pm, cba_config):
 
     with raises(AttributeError):
         create_cache(cba_pm.hook, {})
+
+
+def test_create_cache_exception_handling(cba_pm, cba_config, caplog):
+    # cache should initially be empty
+    assert cba_pm.hook.get_cache(config=cba_config) == {}
+
+    # simulate save_cache() hook raising an exception
+    error = Exception("Simulated save_cache() hook Exception")
+    with mock.patch.object(
+        cba_pm.hook,
+        'save_cache',
+        side_effect=error
+    ):
+        with raises(FailedToSaveCacheError):
+            create_cache(cba_pm.hook, cba_config)
+        assert str(error) in caplog.text
 
 
 def test_add_usage_record(cba_pm, cba_config):

@@ -78,7 +78,7 @@ def test_get_config(cba_pm, cba_config, cba_config_path, cba_log):
     assert config == cba_config
 
 
-def test_initial_adapter_setup(cba_pm, cba_config, cba_log):
+def test_initial_adapter_setup(cba_pm, cba_config, cba_log, caplog):
     """
     Verify that the initial_adapter_setup() works correctly using
     in-memory plugins.
@@ -92,6 +92,39 @@ def test_initial_adapter_setup(cba_pm, cba_config, cba_log):
     assert csp_config != {}
 
 
+def test_initial_adapter_setup_exception_handling(
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    """
+    Verify that the initial_adapter_setup() correctly handles raised
+    exceptions from the get_csp_cache() and get_cache() hook calls
+    in-memory plugins.
+    """
+
+    # test get_csp_config() hook raises an exception
+    error = Exception('Simulated CSP Config Retrieval Error')
+    with mock.patch.object(
+        cba_pm.hook,
+        'get_csp_config',
+        side_effect=error
+    ):
+        initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
+        assert str(error) in caplog.text
+
+    # test get_cache() hook raises an exception
+    error = Exception('Simulated Cache Retrieval Error')
+    with mock.patch.object(
+        cba_pm.hook,
+        'get_cache',
+        side_effect=error
+    ):
+        initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
+        assert str(error) in caplog.text
+
+
 @mock.patch('csp_billing_adapter.local_csp.randrange')
 def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     """Verify correct operation of event_loop_handler()."""
@@ -100,8 +133,6 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
 
     # setup the adapter environment similar to what is done
     # inside the csp_billing_adapter.adapter.main()
-    log = setup_logging(cba_pm.hook)
-    assert log.name == ('CSPBillingAdapter')
     initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
 
     # validate the initial state of the cache
@@ -133,7 +164,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     # and simulate the first run of the event loop.
     with mock.patch('csp_billing_adapter.adapter.get_now',
                     return_value=event_time):
-        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, log)
+        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, cba_log)
         assert loop_event_time == event_time
 
         # This run should have added a new usage_record, but
@@ -164,7 +195,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
 
     with mock.patch('csp_billing_adapter.adapter.get_now',
                     return_value=event_time):
-        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, log)
+        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, cba_log)
         assert loop_event_time == event_time
 
         # This run should have added another usage_record, but
@@ -195,7 +226,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
 
     with mock.patch('csp_billing_adapter.adapter.get_now',
                     return_value=event_time):
-        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, log)
+        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, cba_log)
         assert loop_event_time == event_time
 
         # This run should in the usage_records list being cleared
@@ -232,7 +263,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
 
     with mock.patch('csp_billing_adapter.adapter.get_now',
                     return_value=event_time):
-        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, log)
+        loop_event_time = event_loop_handler(cba_pm.hook, cba_config, cba_log)
         assert loop_event_time == event_time
 
         # A new usage record should have been added to the usage
@@ -256,6 +287,42 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
         assert csp_config['errors'] != []
         assert 'usage' in csp_config
         assert 'last_billed' in csp_config
+
+
+def test_event_loop_handler_usage_data_error(
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    event_time = get_now()
+
+    with mock.patch('csp_billing_adapter.adapter.get_now',
+                    return_value=event_time):
+
+        error = Exception("Simulated failed get_usage_data() Error")
+        with mock.patch.object(
+            cba_pm.hook,
+            'get_usage_data',
+            side_effect=error
+        ):
+            loop_event_time = event_loop_handler(
+                cba_pm.hook,
+                cba_config,
+                cba_log
+            )
+
+            # event loop handler should return expected event time
+            assert loop_event_time == event_time
+
+            # simulated error's message should be in the log
+            assert str(error) in caplog.text
+
+            # get_usage_data() succeeded message should not be in log
+            assert 'Retrieved usage data: ' not in caplog.text
+
+            # end of event loop processing message should be in log
+            assert 'Finishing event loop processing' in caplog.text
 
 
 @mock.patch('csp_billing_adapter.adapter.get_plugin_manager')

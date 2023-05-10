@@ -41,3 +41,11 @@ class NoMatchingVolumeDimensionError(CSPBillingAdapterException):
 
     def __str__(self):
         return self.msg
+
+
+class FailedToSaveCSPConfigError(CSPBillingAdapterException):
+    """Exception raised when csp_config save/update fails."""
+
+
+class FailedToSaveCacheError(CSPBillingAdapterException):
+    """Exception raised when cache save/update fails."""
