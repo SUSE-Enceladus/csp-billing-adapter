@@ -170,28 +170,30 @@ def event_loop_handler(
         # that was saved in the csp_config being lost, as it would be
         # overwritten with a success state, or a different error.
 
-    else:
-        log.debug('Retrieved usage data: %s', usage)
+        log.info('Finishing event loop processing - get_usage_data() error')
+        return now
 
-        add_usage_record(hook, config, usage)
+    log.debug('Retrieved usage data: %s', usage)
 
-        # handle metering/billing updates
-        cache = hook.get_cache(config=config)
-        now = get_now()
+    add_usage_record(hook, config, usage)
 
-        log.debug(
-            "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
-            date_to_string(now),
-            cache['next_reporting_time'],
-            cache['next_bill_time']
-        )
+    # handle metering/billing updates
+    cache = hook.get_cache(config=config)
+    now = get_now()
 
-        if now >= string_to_date(cache['next_bill_time']):
-            log.info('Attempt a billing cycle update')
-            process_metering(config, cache, hook)
-        elif now >= string_to_date(cache['next_reporting_time']):
-            log.info('Attempt a reporting cycle update')
-            process_metering(config, cache, hook, empty_metering=True)
+    log.debug(
+        "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
+        date_to_string(now),
+        cache['next_reporting_time'],
+        cache['next_bill_time']
+    )
+
+    if now >= string_to_date(cache['next_bill_time']):
+        log.info('Attempt a billing cycle update')
+        process_metering(config, cache, hook)
+    elif now >= string_to_date(cache['next_reporting_time']):
+        log.info('Attempt a reporting cycle update')
+        process_metering(config, cache, hook, empty_metering=True)
 
     log.info('Finishing event loop processing')
     return now
