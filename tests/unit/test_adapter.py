@@ -39,7 +39,8 @@ from csp_billing_adapter.exceptions import (
 from csp_billing_adapter.utils import (
     get_now,
     get_date_delta,
-    string_to_date
+    string_to_date,
+    date_to_string
 )
 
 
@@ -161,7 +162,14 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     # given config.
     event_time = get_now()
 
-    event_loop_handler(event_time, cba_pm.hook, cba_config, cba_log)
+    event_loop_handler(
+        cba_pm.hook,
+        cba_config,
+        cba_log,
+        event_time,
+        cache,
+        csp_config
+    )
 
     # This run should have added a new usage_record, but
     # not triggered any billing related updates to the cache.
@@ -179,6 +187,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     assert csp_config['errors'] == []
     assert 'usage' not in csp_config
     assert 'last_billed' not in csp_config
+    assert csp_config['timestamp'] == date_to_string(event_time)
 
     #
     # Advance to next_reporting_time
@@ -189,7 +198,14 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     # any billing updates.
     event_time = string_to_date(cache['next_reporting_time'])
 
-    event_loop_handler(event_time, cba_pm.hook, cba_config, cba_log)
+    event_loop_handler(
+        cba_pm.hook,
+        cba_config,
+        cba_log,
+        event_time,
+        cache,
+        csp_config
+    )
 
     # This run should have added another usage_record, but
     # not triggered any billing related updates to the cache.
@@ -207,6 +223,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     assert csp_config['errors'] == []
     assert 'usage' not in csp_config
     assert 'last_billed' not in csp_config
+    assert csp_config['timestamp'] == date_to_string(event_time)
 
     #
     # Advance to next_bill_time
@@ -217,7 +234,14 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     # and csp_config data stores
     event_time = string_to_date(cache['next_bill_time'])
 
-    event_loop_handler(event_time, cba_pm.hook, cba_config, cba_log)
+    event_loop_handler(
+        cba_pm.hook,
+        cba_config,
+        cba_log,
+        event_time,
+        cache,
+        csp_config
+    )
 
     # This run should in the usage_records list being cleared
     # in the case, along with the last_bill entry being updated
@@ -238,6 +262,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     assert csp_config['errors'] == []
     assert 'usage' in csp_config
     assert 'last_billed' in csp_config
+    assert csp_config['timestamp'] == date_to_string(event_time)
 
     #
     # Advance to next_reporting_time with a meter_billing() failure
@@ -251,7 +276,14 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     # and the billing_api_access_ok flag being cleared.
     event_time = string_to_date(cache['next_reporting_time'])
 
-    event_loop_handler(event_time, cba_pm.hook, cba_config, cba_log)
+    event_loop_handler(
+        cba_pm.hook,
+        cba_config,
+        cba_log,
+        event_time,
+        cache,
+        csp_config
+    )
 
     # A new usage record should have been added to the usage
     # records list in the cache, and the last_bill entries should
@@ -274,6 +306,7 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     assert csp_config['errors'] != []
     assert 'usage' in csp_config
     assert 'last_billed' in csp_config
+    assert csp_config['timestamp'] == date_to_string(event_time)
 
 
 def test_event_loop_handler_usage_data_error(
@@ -290,11 +323,17 @@ def test_event_loop_handler_usage_data_error(
         'get_usage_data',
         side_effect=error
     ):
+        initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
+        cache = cba_pm.hook.get_cache(config=cba_config)
+        csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+
         event_loop_handler(
-            event_time,
             cba_pm.hook,
             cba_config,
-            cba_log
+            cba_log,
+            event_time,
+            cache,
+            csp_config
         )
 
         # simulated error's message should be in the log
@@ -305,6 +344,8 @@ def test_event_loop_handler_usage_data_error(
 
         # end of event loop processing message should be in log
         assert 'Finishing event loop processing' in caplog.text
+
+        assert csp_config['timestamp'] == date_to_string(event_time)
 
 
 @mock.patch('csp_billing_adapter.local_csp.randrange')
