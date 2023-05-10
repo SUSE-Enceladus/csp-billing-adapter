@@ -44,7 +44,7 @@ from csp_billing_adapter.utils import (
 
 def test_adapter_version():
     """Verify the adapter version."""
-    assert csp_billing_adapter.__version__ == "0.0.1"
+    assert csp_billing_adapter.__version__ == "0.0.2"
 
 
 def test_get_plugin_manager(cba_config):
