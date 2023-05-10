@@ -129,6 +129,7 @@ def initial_adapter_setup(
             str(e)
         )
         cache = {}
+
     if not cache:
         cache = create_cache(hook, config)
 
@@ -143,60 +144,63 @@ def event_loop_handler(
 ) -> datetime.datetime:
     """Perform the event loop processing actions."""
     log.info('Starting event loop processing')
+    now = get_now()
+    errors = []
 
     try:
         usage = hook.get_usage_data(config=config)
+        log.debug('Retrieved usage data: %s', usage)
     except Exception as exc:
         log.warning("Failed to retrieve usage data: %s", str(exc))
-        now = get_now()
-        hook.update_csp_config(
-            config=config,
-            csp_config={
-                'timestamp': date_to_string(now),
-                'billing_api_access_ok': False,
-                'errors': [
-                    f'Usage data retrieval failed: {exc}'
-                ]
-            },
-            replace=False
-        )
-        # NOTE:
-        # If this happens during initial deployment timeframe, failing
-        # to retrieve usage data here could simple mean that there is
-        # nothing to bill for yet so not proceeding to metering makes
-        # sense.
-        # If this occurs for an existing deployment, with valid usage
-        # records waiting to be billed, continuing on to metering is
-        # worth considering.
-        # However, doing so will currently result in the error state
-        # that was saved in the csp_config being lost, as it would be
-        # overwritten with a success state, or a different error.
+        errors.append(f'Usage data retrieval failed: {exc}')
 
-        log.info('Finishing event loop processing - get_usage_data() error')
-        return now
-
-    log.debug('Retrieved usage data: %s', usage)
-
-    add_usage_record(hook, config, usage)
+    if usage:
+        try:
+            add_usage_record(hook, config, usage)
+        except Exception as error:
+            log.warning("Failed to save usage data to cache: %s", str(error))
+            errors.append(f'Usage data failed to save: {error}')
 
     # handle metering/billing updates
-    cache = hook.get_cache(config=config)
-    now = get_now()
+    try:
+        cache = hook.get_cache(config=config)
+    except Exception as error:
+        log.warning("Failed to retrieve cache: %s", str(error))
+        errors.append(f'Cache retrieval failed: {error}')
+        cache = {}
 
-    log.debug(
-        "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
-        date_to_string(now),
-        cache['next_reporting_time'],
-        cache['next_bill_time']
+    if cache:
+        log.debug(
+            "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
+            date_to_string(now),
+            cache['next_reporting_time'],
+            cache['next_bill_time']
+        )
+
+        if now >= string_to_date(cache['next_bill_time']):
+            log.info('Attempt a billing cycle update')
+            errors += process_metering(
+                config,
+                cache,
+                hook
+            )
+        elif now >= string_to_date(cache['next_reporting_time']):
+            log.info('Attempt a reporting cycle update')
+            errors += process_metering(
+                config,
+                cache,
+                hook,
+                empty_metering=True
+            )
+
+    hook.update_csp_config(
+        config=config,
+        csp_config={
+            'timestamp': date_to_string(now),
+            'errors': errors
+        },
+        replace=False
     )
-
-    if now >= string_to_date(cache['next_bill_time']):
-        log.info('Attempt a billing cycle update')
-        process_metering(config, cache, hook)
-    elif now >= string_to_date(cache['next_reporting_time']):
-        log.info('Attempt a reporting cycle update')
-        process_metering(config, cache, hook, empty_metering=True)
-
     log.info('Finishing event loop processing')
     return now
 

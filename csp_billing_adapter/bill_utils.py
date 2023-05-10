@@ -336,7 +336,7 @@ def process_metering(
     cache: dict,
     hook,
     empty_metering: bool = False
-) -> None:
+) -> list:
     """
     Handle the CSP metering process, updating the csp_config and cache
     data stores appropriately.
@@ -375,6 +375,8 @@ def process_metering(
         operation.
     """
     now = get_now()
+    errors = []
+
     log.debug(
         "Processing metering at time %s, empty_metering=%s",
         date_to_string(now),
@@ -425,14 +427,13 @@ def process_metering(
             timestamp=now,
             dry_run=False
         )
-    except Exception as e:
-        log.exception(e)
+    except Exception as error:
+        log.exception(error)
+        errors.append(str(error))
         hook.update_csp_config(
             config=config,
             csp_config={
-                'timestamp': date_to_string(now),
                 'billing_api_access_ok': False,
-                'errors': [str(e)]
             },
             replace=False
         )
@@ -453,8 +454,6 @@ def process_metering(
 
         csp_config_updates = {
             'billing_api_access_ok': True,
-            'errors': [],
-            'timestamp': metering_time,
             'expire': next_reporting_time
         }
 
@@ -501,3 +500,5 @@ def process_metering(
             cache=cache_updates,
             replace=False
         )
+
+    return errors
