@@ -368,3 +368,12 @@ def test_main(mock_get_config, mock_get_pm, mock_sleep, cba_pm, cba_config):
         with pytest.raises(SystemExit) as e:
             cba_main()
         assert e.value.code == 1
+
+    with mock.patch.object(
+        cba_pm.hook,
+        'meter_billing',
+        side_effect=Exception('Mock Failure')
+    ):
+        with pytest.raises(SystemExit) as e:
+            cba_main()
+        assert e.value.code == 2

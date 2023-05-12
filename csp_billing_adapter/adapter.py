@@ -219,13 +219,21 @@ def main() -> None:
         cache, csp_config = initial_adapter_setup(pm.hook, config, log)
 
         try:
-            # Test metering API access
-            process_metering(
-                config,
-                cache,
-                pm.hook,
-                empty_metering=True,
+            # Test metering API access with random dimension metric
+            metric = next(iter(config.usage_metrics))
+            dimension = next(iter(
+                config.usage_metrics[metric]['dimensions']
+            ))['dimension']
+
+            pm.hook.meter_billing(
+                config=config,
+                dimensions={dimension: 0},
+                timestamp=csp_config['timestamp'],
                 dry_run=True
+            )
+        except KeyError as key:
+            raise CSPBillingAdapterException(
+                f'Billing adapter config is invalid. Config is missing {key}'
             )
         except Exception as error:
             raise CSPBillingAdapterException(
