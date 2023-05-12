@@ -42,7 +42,8 @@ def get_usage_data(config: Config) -> dict:
 
     usage = {
         'managed_node_count': quantity,
-        'reporting_time': date_to_string(get_now())
+        'reporting_time': date_to_string(get_now()),
+        'base_product': 'cpe:/o:suse:product:v1.2.3'
     }
 
     log.info("Simulated Usage data: %s", usage)
