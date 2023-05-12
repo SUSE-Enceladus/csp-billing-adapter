@@ -215,6 +215,7 @@ def main() -> None:
         )
 
         initial_adapter_setup(pm.hook, config, log)
+        time.sleep(config.query_interval)  # wait 1 cycle for usage data
 
         while True:
             now = event_loop_handler(pm.hook, config, log)
