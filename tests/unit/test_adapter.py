@@ -325,13 +325,22 @@ def test_event_loop_handler_usage_data_error(
             assert 'Finishing event loop processing' in caplog.text
 
 
+@mock.patch('csp_billing_adapter.local_csp.randrange')
 @mock.patch('csp_billing_adapter.adapter.time.sleep')
 @mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
 @mock.patch('csp_billing_adapter.adapter.get_config')
-def test_main(mock_get_config, mock_get_pm, mock_sleep, cba_pm, cba_config):
+def test_main(
+    mock_get_config,
+    mock_get_pm,
+    mock_sleep,
+    mock_rand,
+    cba_pm,
+    cba_config
+):
 
     mock_get_pm.return_value = cba_pm
     mock_get_config.return_value = cba_config
+    mock_rand.return_value = 0
 
     # test catching Ctrl-C from time.sleep()
     mock_sleep.side_effect = KeyboardInterrupt('Mock Ctrl-C')
