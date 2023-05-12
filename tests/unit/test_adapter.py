@@ -38,6 +38,7 @@ from csp_billing_adapter.exceptions import (
 )
 from csp_billing_adapter.utils import (
     get_now,
+    get_date_delta,
     string_to_date
 )
 
@@ -386,3 +387,64 @@ def test_main(
         with pytest.raises(SystemExit) as e:
             cba_main()
         assert e.value.code == 2
+
+
+@mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
+@mock.patch('csp_billing_adapter.adapter.setup_logging')
+@mock.patch('csp_billing_adapter.adapter.get_config')
+@mock.patch('csp_billing_adapter.adapter.event_loop_handler')
+@mock.patch('csp_billing_adapter.adapter.get_now')
+@mock.patch('csp_billing_adapter.adapter.time.sleep')
+def test_main_sleep(
+    mock_sleep,
+    mock_get_now,
+    mock_event_loop_handler,
+    mock_get_config,
+    mock_setup_logging,
+    mock_get_pm,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    now = get_now()
+    processing_delay = 1.23
+
+    # calculate the time when event loop "started"
+    event_time = get_date_delta(
+        now,
+        -processing_delay
+    )
+
+    # this is the debug level message we expect to see in the log,
+    # and debug level is enabled for the cba_log fixture
+    expected_log_msg = (
+        "Sleeping for %g seconds" % (
+            (now - event_time).total_seconds()
+        )
+    )
+
+    # set up our mock return values
+    mock_get_pm.return_value = cba_pm
+    mock_setup_logging.return_value = cba_log
+    mock_get_config.return_value = cba_config
+    mock_event_loop_handler.return_value = event_time
+    mock_get_now.return_value = now
+
+    # time.sleep is called before the main loop runs, which needs to
+    # succeed, but the next call, at the end of the main loop should
+    # fail leading to SystemExit with exit status of 0.
+    mock_sleep.side_effect = [
+        None,
+        KeyboardInterrupt('Mock Ctrl-C'),
+    ]
+
+    with mock.patch.object(
+        cba_pm.hook,
+        'meter_billing',
+        return_value=None
+    ):
+        with pytest.raises(SystemExit) as e:
+            cba_main()
+        assert e.value.code == 0
+        assert expected_log_msg in caplog.text

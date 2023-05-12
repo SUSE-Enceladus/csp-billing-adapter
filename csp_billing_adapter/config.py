@@ -50,7 +50,7 @@ class Config(dict):
             else:
                 setattr(self, key, self.parse_value(val))
 
-        log.debug("Config: %s %s", self)
+        log.debug("Config: %s", self)
 
     def parse_value(self, item):
         """recursive evaluation if item is a dict"""

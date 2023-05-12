@@ -142,13 +142,13 @@ def event_loop_handler(
     log: logging.Logger
 ) -> datetime.datetime:
     """Perform the event loop processing actions."""
+    now = get_now()
     log.info('Starting event loop processing')
 
     try:
         usage = hook.get_usage_data(config=config)
     except Exception as exc:
         log.warning("Failed to retrieve usage data: %s", str(exc))
-        now = get_now()
         hook.update_csp_config(
             config=config,
             csp_config={
@@ -181,7 +181,6 @@ def event_loop_handler(
 
     # handle metering/billing updates
     cache = hook.get_cache(config=config)
-    now = get_now()
 
     log.debug(
         "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
@@ -243,11 +242,12 @@ def main() -> None:
         time.sleep(config.query_interval)  # wait 1 cycle for usage data
 
         while True:
-            now = event_loop_handler(pm.hook, config, log)
-            log.info("Processed event loop at %s", date_to_string(now))
+            start = event_loop_handler(pm.hook, config, log)
+            log.info("Processed event loop at %s", date_to_string(start))
 
-            log.debug("Sleeping for %d seconds", config.query_interval)
-            time.sleep(config.query_interval)
+            query_interval_remainder = (get_now() - start).total_seconds()
+            log.debug("Sleeping for %g seconds", query_interval_remainder)
+            time.sleep(query_interval_remainder)
     except KeyboardInterrupt:
         sys.exit(0)
     except SystemExit as e:
