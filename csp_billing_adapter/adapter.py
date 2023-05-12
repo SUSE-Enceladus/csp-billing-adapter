@@ -229,7 +229,7 @@ def main() -> None:
             )
         except Exception as error:
             raise CSPBillingAdapterException(
-                f'Failed to validate metering API access: {error}'
+                f'Fatal error while validating metering API access: {error}'
             )
 
         time.sleep(config.query_interval)  # wait 1 cycle for usage data
