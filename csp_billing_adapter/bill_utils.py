@@ -335,7 +335,8 @@ def process_metering(
     config: Config,
     cache: dict,
     hook,
-    empty_metering: bool = False
+    empty_metering: bool = False,
+    dry_run: bool = False
 ) -> None:
     """
     Handle the CSP metering process, updating the csp_config and cache
@@ -423,7 +424,7 @@ def process_metering(
             config=config,
             dimensions=billed_dimensions,
             timestamp=now,
-            dry_run=False
+            dry_run=dry_run
         )
     except Exception as e:
         log.exception(e)
@@ -488,16 +489,17 @@ def process_metering(
             csp_config_updates['usage'] = billable_usage
             csp_config_updates['last_billed'] = metering_time
 
-        log.info("Updating CSP config with: %s", csp_config_updates)
-        hook.update_csp_config(
-            config=config,
-            csp_config=csp_config_updates,
-            replace=False
-        )
+        if not dry_run:
+            log.info("Updating CSP config with: %s", csp_config_updates)
+            hook.update_csp_config(
+                config=config,
+                csp_config=csp_config_updates,
+                replace=False
+            )
 
-        log.info("Updating cache with: %s", cache_updates)
-        hook.update_cache(
-            config=config,
-            cache=cache_updates,
-            replace=False
-        )
+            log.info("Updating cache with: %s", cache_updates)
+            hook.update_cache(
+                config=config,
+                cache=cache_updates,
+                replace=False
+            )

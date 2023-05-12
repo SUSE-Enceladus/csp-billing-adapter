@@ -116,8 +116,9 @@ def initial_adapter_setup(
             str(e)
         )
         csp_config = {}
+
     if not csp_config:
-        create_csp_config(hook, config)
+        csp_config = create_csp_config(hook, config)
 
     log.debug("Initializing the cache")
     try:
@@ -129,9 +130,10 @@ def initial_adapter_setup(
         )
         cache = {}
     if not cache:
-        create_cache(hook, config)
+        cache = create_cache(hook, config)
 
     log.info("Adapter setup complete")
+    return cache, csp_config
 
 
 def event_loop_handler(
@@ -214,7 +216,22 @@ def main() -> None:
             log
         )
 
-        initial_adapter_setup(pm.hook, config, log)
+        cache, csp_config = initial_adapter_setup(pm.hook, config, log)
+
+        try:
+            # Test metering API access
+            process_metering(
+                config,
+                cache,
+                pm.hook,
+                empty_metering=True,
+                dry_run=True
+            )
+        except Exception as error:
+            raise CSPBillingAdapterException(
+                f'Failed to validate metering API access: {error}'
+            )
+
         time.sleep(config.query_interval)  # wait 1 cycle for usage data
 
         while True:

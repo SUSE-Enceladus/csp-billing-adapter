@@ -34,7 +34,7 @@ log = logging.getLogger('CSPBillingAdapter')
 def create_csp_config(
     hook,
     config: Config,
-) -> None:
+) -> dict:
     """
     Initialize the csp_config data store.
 
@@ -65,3 +65,4 @@ def create_csp_config(
         raise FailedToSaveCSPConfigError(str(exc)) from exc
 
     log.debug("CSP config initialized with: %s", csp_config)
+    return csp_config
