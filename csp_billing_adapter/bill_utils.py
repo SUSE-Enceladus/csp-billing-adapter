@@ -374,6 +374,11 @@ def process_metering(
         submitted, and if not not the csp_config and cache data stores
         will be updated appropriately to relfect a successful metering
         operation.
+    :param dry_run:
+        A flag that indicates if the metered billing will be performed
+        as a dry run. If True the call to the CSP API is run as a test.
+        No actual metering happens in this case. If False a bill will
+        be metered based on usage and empty_metering flag.
     """
     now = get_now()
     log.debug(
