@@ -116,8 +116,9 @@ def initial_adapter_setup(
             str(e)
         )
         csp_config = {}
+
     if not csp_config:
-        create_csp_config(hook, config)
+        csp_config = create_csp_config(hook, config)
 
     log.debug("Initializing the cache")
     try:
@@ -129,9 +130,10 @@ def initial_adapter_setup(
         )
         cache = {}
     if not cache:
-        create_cache(hook, config)
+        cache = create_cache(hook, config)
 
     log.info("Adapter setup complete")
+    return cache, csp_config
 
 
 def event_loop_handler(
@@ -214,7 +216,31 @@ def main() -> None:
             log
         )
 
-        initial_adapter_setup(pm.hook, config, log)
+        cache, csp_config = initial_adapter_setup(pm.hook, config, log)
+
+        try:
+            # Test metering API access with random dimension metric
+            metric = next(iter(config.usage_metrics))
+            dimension = next(iter(
+                config.usage_metrics[metric]['dimensions']
+            ))['dimension']
+
+            pm.hook.meter_billing(
+                config=config,
+                dimensions={dimension: 0},
+                timestamp=csp_config['timestamp'],
+                dry_run=True
+            )
+        except KeyError as key:
+            raise CSPBillingAdapterException(
+                f'Billing adapter config is invalid. Config is missing {key}'
+            )
+        except Exception as error:
+            raise CSPBillingAdapterException(
+                f'Fatal error while validating metering API access: {error}'
+            )
+
+        time.sleep(config.query_interval)  # wait 1 cycle for usage data
 
         while True:
             now = event_loop_handler(pm.hook, config, log)

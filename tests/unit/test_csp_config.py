@@ -34,7 +34,7 @@ def test_create_csp_config(cba_pm, cba_config):
     # csp_config should initially be empty
     assert cba_pm.hook.get_csp_config(config=cba_config) == {}
 
-    create_csp_config(cba_pm.hook, cba_config)
+    new_csp_config = create_csp_config(cba_pm.hook, cba_config)
 
     csp_config = cba_pm.hook.get_csp_config(config=cba_config)
 
@@ -42,6 +42,8 @@ def test_create_csp_config(cba_pm, cba_config):
     assert csp_config['billing_api_access_ok'] is True
     assert 'timestamp' in csp_config
     assert 'expire' in csp_config
+
+    assert new_csp_config == csp_config
 
     timestamp = string_to_date(csp_config['timestamp'])
     expire = string_to_date(csp_config['expire'])

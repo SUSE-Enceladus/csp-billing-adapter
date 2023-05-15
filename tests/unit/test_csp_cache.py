@@ -37,7 +37,7 @@ def test_create_cache(cba_pm, cba_config):
     # cache should initially be empty
     assert cba_pm.hook.get_cache(config=cba_config) == {}
 
-    create_cache(cba_pm.hook, cba_config)
+    new_cache = create_cache(cba_pm.hook, cba_config)
 
     cache = cba_pm.hook.get_cache(config=cba_config)
 
@@ -48,6 +48,8 @@ def test_create_cache(cba_pm, cba_config):
     assert cache['usage_records'] == []
     assert 'last_bill' in cache
     assert cache['last_bill'] == {}
+
+    assert new_cache == cache
 
 
 def test_create_cache_bad_config(cba_pm, cba_config):

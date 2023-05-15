@@ -36,7 +36,7 @@ from csp_billing_adapter.utils import (
 log = logging.getLogger('CSPBillingAdapter')
 
 
-def create_cache(hook, config: Config) -> None:
+def create_cache(hook, config: Config) -> dict:
     """
     Initialise the cache data store based upon the settings specified
     for the CSP.
@@ -69,6 +69,7 @@ def create_cache(hook, config: Config) -> None:
         raise FailedToSaveCacheError(str(exc)) from exc
 
     log.info("Initialized cache with: %s", cache)
+    return cache
 
 
 def add_usage_record(hook, config: Config, record: dict) -> None:
