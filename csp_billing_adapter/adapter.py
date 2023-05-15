@@ -38,7 +38,6 @@ from csp_billing_adapter.exceptions import (
 )
 from csp_billing_adapter.utils import (
     date_to_string,
-    get_now,
     string_to_date
 )
 from csp_billing_adapter.bill_utils import process_metering
@@ -140,11 +139,13 @@ def initial_adapter_setup(
 def event_loop_handler(
     hook,
     config: Config,
-    log: logging.Logger
+    log: logging.Logger,
+    now: datetime.datetime,
+    cache: dict,
+    csp_config: dict
 ) -> datetime.datetime:
     """Perform the event loop processing actions."""
     log.info('Starting event loop processing')
-    now = get_now()
     errors = []
 
     try:
@@ -155,54 +156,61 @@ def event_loop_handler(
         errors.append(f'Usage data retrieval failed: {exc}')
 
     if usage:
-        try:
-            add_usage_record(hook, config, usage)
-        except Exception as error:
-            log.warning("Failed to save usage data to cache: %s", str(error))
-            errors.append(f'Usage data failed to save: {error}')
+        add_usage_record(usage, cache)
 
-    # handle metering/billing updates
-    try:
-        cache = hook.get_cache(config=config)
-    except Exception as error:
-        log.warning("Failed to retrieve cache: %s", str(error))
-        errors.append(f'Cache retrieval failed: {error}')
-        cache = {}
+    log.debug(
+        "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
+        date_to_string(now),
+        cache['next_reporting_time'],
+        cache['next_bill_time']
+    )
 
-    if cache:
-        log.debug(
-            "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
-            date_to_string(now),
-            cache['next_reporting_time'],
-            cache['next_bill_time']
+    if now >= string_to_date(cache['next_bill_time']):
+        log.info('Attempt a billing cycle update')
+        errors += process_metering(
+            hook,
+            config,
+            now,
+            cache,
+            csp_config
+        )
+    elif now >= string_to_date(cache['next_reporting_time']):
+        log.info('Attempt a reporting cycle update')
+        errors += process_metering(
+            hook,
+            config,
+            now,
+            cache,
+            csp_config,
+            empty_metering=True
         )
 
-        if now >= string_to_date(cache['next_bill_time']):
-            log.info('Attempt a billing cycle update')
-            errors += process_metering(
-                config,
-                cache,
-                hook
-            )
-        elif now >= string_to_date(cache['next_reporting_time']):
-            log.info('Attempt a reporting cycle update')
-            errors += process_metering(
-                config,
-                cache,
-                hook,
-                empty_metering=True
-            )
+    csp_config['timestamp'] = date_to_string(now),
+    csp_config['errors'] = errors
 
-    hook.update_csp_config(
-        config=config,
-        csp_config={
-            'timestamp': date_to_string(now),
-            'errors': errors
-        },
-        replace=False
-    )
+    log.info("Updating CSP config with: %s", csp_config)
+    try:
+        hook.update_csp_config(
+            config=config,
+            csp_config=csp_config,
+            replace=False
+        )
+    except Exception as error:
+        log.warning("Failed to save csp_config to datastore: %s", str(error))
+        errors.append(f'csp_config failed to save: {error}')
+
+    log.info("Updating cache with: %s", cache)
+    try:
+        hook.update_cache(
+            config=config,
+            cache=cache,
+            replace=False
+        )
+    except Exception as error:
+        log.warning("Failed to save cache to datastore: %s", str(error))
+        errors.append(f'Cache failed to save: {error}')
+
     log.info('Finishing event loop processing')
-    return now
 
 
 def main() -> None:

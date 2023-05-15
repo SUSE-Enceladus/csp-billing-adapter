@@ -72,25 +72,21 @@ def create_cache(hook, config: Config) -> dict:
     return cache
 
 
-def add_usage_record(hook, config: Config, record: dict) -> None:
+def add_usage_record(record: dict, cache: dict) -> None:
     """
     Add a new 'record' to the cache data store's usage_records list,
     avoiding duplicate records by ensuring that the new record's
     reporting time doesn't match that of the last record saved.
 
-    :param hook:
-        The Pluggy plugin manager hook used to call the get_cache()
-        and update_cache() operations.
-    :param config:
-        The configuration settings associated with the CSP.
+    :param record:
+        The record to add to the cache.
+    :param cache:
+        Cache to add the record to.
     """
-
-    cache = hook.get_cache(config=config)
 
     if not cache.get('usage_records', []):
         log.info('Initial usage record: %s', record)
         cache['usage_records'] = [record]
-        hook.update_cache(config=config, cache=cache, replace=True)
     else:
         last_record_time = cache['usage_records'][-1]['reporting_time']
 
@@ -98,19 +94,15 @@ def add_usage_record(hook, config: Config, record: dict) -> None:
         if record['reporting_time'] != last_record_time:
             log.info('Appending usage record: %s', record)
             cache['usage_records'].append(record)
-            hook.update_cache(config=config, cache=cache, replace=True)
         else:
             log.info('Skipping duplicate usage record: %s', record)
 
 
 def cache_meter_record(
-    hook,
-    config: Config,
+    cache: dict,
     record_id: str,
     dimensions: dict,
-    metering_time: str,
-    next_bill_time: str,
-    remaining_records: list
+    metering_time: str
 ) -> None:
     """
     Update the cache data store to reflect the fact that a successful CSP
@@ -119,31 +111,14 @@ def cache_meter_record(
     the time at which it was performed, and the time after which the next
     billing operation will be performed.
 
-    :param hook:
-        The Pluggy plugin manager hook used to call the update_cache()
-        operation.
-    :param config:
-        The configuration settings associated with the CSP.
     :param record_id:
         The record id returned by the CSP to track the billing
         submission.
     :param dimensions: The billing dimensions submitted to the CSP.
     :param metering_time: The time at which the submission occurred.
-    :param next_bill_time:
-        The time after which the next billing submission should be
-        performed.
-    :param remaining_records:
-        The list of records not used to generate the most recent bill.
     """
-    cache_updates = {
-        'last_bill': {
-            'dimensions': dimensions,
-            'record_id': record_id,
-            'metering_time': metering_time
-        },
-        'usage_records': remaining_records,
-        'next_bill_time': next_bill_time
+    cache['last_bill'] = {
+        'dimensions': dimensions,
+        'record_id': record_id,
+        'metering_time': metering_time
     }
-
-    log.info("Updating cache with: %s", cache_updates)
-    hook.update_cache(config=config, cache=cache_updates, replace=False)
