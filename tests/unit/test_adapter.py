@@ -80,30 +80,42 @@ def test_get_config(cba_pm, cba_config, cba_config_path, cba_log):
     assert config == cba_config
 
 
-def test_initial_adapter_setup(cba_pm, cba_config, cba_log, caplog):
-    """
-    Verify that the initial_adapter_setup() works correctly using
-    in-memory plugins.
-    """
-    initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
-
-    cache = cba_pm.hook.get_cache(config=cba_config)
-    assert cache != {}
-
-    csp_config = cba_pm.hook.get_cache(config=cba_config)
-    assert csp_config != {}
-
-
-def test_initial_adapter_setup_exception_handling(
+def test_initial_adapter_setup_no_errors(
     cba_pm,
     cba_config,
     cba_log,
     caplog
 ):
     """
-    Verify that the initial_adapter_setup() correctly handles raised
-    exceptions from the get_csp_cache() and get_cache() hook calls
+    Verify that the initial_adapter_setup() works correctly using
     in-memory plugins.
+    """
+    setup_cache, setup_csp_config = initial_adapter_setup(
+        cba_pm.hook,
+        cba_config,
+        cba_log
+    )
+    assert setup_cache != {}
+    assert setup_csp_config != {}
+
+    cache = cba_pm.hook.get_cache(config=cba_config)
+    assert cache == setup_cache
+
+    csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+    assert csp_config == setup_csp_config
+
+
+@mock.patch('csp_billing_adapter.adapter.time.sleep')
+def test_initial_adapter_setup_csp_config_errors(
+    mock_sleep,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    """
+    Verify that the initial_adapter_setup() correctly handles
+    exceptions from the csp_config management hook calls.
     """
 
     # test get_csp_config() hook raises an exception
@@ -113,8 +125,26 @@ def test_initial_adapter_setup_exception_handling(
         'get_csp_config',
         side_effect=error
     ):
-        initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
+        cache, csp_config, = initial_adapter_setup(
+            cba_pm.hook,
+            cba_config,
+            cba_log
+        )
         assert str(error) in caplog.text
+
+
+@mock.patch('csp_billing_adapter.adapter.time.sleep')
+def test_initial_adapter_setup_cache_errors(
+    mock_sleep,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    """
+    Verify that the initial_adapter_setup() correctly handles
+    exceptions from the cache management hook calls.
+    """
 
     # test get_cache() hook raises an exception
     error = Exception('Simulated Cache Retrieval Error')
@@ -123,12 +153,23 @@ def test_initial_adapter_setup_exception_handling(
         'get_cache',
         side_effect=error
     ):
-        initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
+        cache, csp_config, = initial_adapter_setup(
+            cba_pm.hook,
+            cba_config,
+            cba_log
+        )
         assert str(error) in caplog.text
 
 
 @mock.patch('csp_billing_adapter.local_csp.randrange')
-def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_event_loop_handler(
+    mock_sleep,
+    mock_randrange,
+    cba_pm,
+    cba_config,
+    cba_log
+):
     """Verify correct operation of event_loop_handler()."""
     # ensure meter_billing will succeed
     mock_randrange.return_value = 0
@@ -309,7 +350,9 @@ def test_event_loop_handler(mock_randrange, cba_pm, cba_config, cba_log):
     assert csp_config['timestamp'] == date_to_string(event_time)
 
 
+@mock.patch('csp_billing_adapter.utils.time.sleep')
 def test_event_loop_handler_usage_data_error(
+    mock_sleep,
     cba_pm,
     cba_config,
     cba_log,

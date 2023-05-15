@@ -20,6 +20,7 @@ metrics specified in the provided config.
 """
 
 import datetime
+import functools
 import logging
 import math
 
@@ -32,6 +33,7 @@ from csp_billing_adapter.utils import (
     get_next_bill_time,
     get_prev_bill_time,
     get_date_delta,
+    retry_on_exception,
     string_to_date
 )
 from csp_billing_adapter.config import Config
@@ -427,11 +429,16 @@ def process_metering(
             billed_dimensions
         )
 
-        record_id = hook.meter_billing(
-            config=config,
-            dimensions=billed_dimensions,
-            timestamp=now,
-            dry_run=False
+        record_id = retry_on_exception(
+            functools.partial(
+                hook.meter_billing,
+                config=config,
+                dimensions=billed_dimensions,
+                timestamp=now,
+                dry_run=False
+            ),
+            logger=log,
+            func_name="hook.meter_billing"
         )
     except Exception as error:
         log.exception(error)

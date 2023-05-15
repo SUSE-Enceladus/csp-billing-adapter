@@ -60,7 +60,13 @@ def test_create_cache_bad_config(cba_pm, cba_config):
         create_cache(cba_pm.hook, {})
 
 
-def test_create_cache_exception_handling(cba_pm, cba_config, caplog):
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_create_cache_exception_handling(
+    mock_sleep,
+    cba_pm,
+    cba_config,
+    caplog
+):
     # cache should initially be empty
     assert cba_pm.hook.get_cache(config=cba_config) == {}
 

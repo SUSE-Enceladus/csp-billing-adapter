@@ -20,6 +20,7 @@ Pluggy hooks to perform the implementation specific low-level cache
 management operations.
 """
 
+import functools
 import logging
 
 from csp_billing_adapter.config import Config
@@ -30,7 +31,8 @@ from csp_billing_adapter.utils import (
     get_now,
     date_to_string,
     get_next_bill_time,
-    get_date_delta
+    get_date_delta,
+    retry_on_exception
 )
 
 log = logging.getLogger('CSPBillingAdapter')
@@ -60,7 +62,15 @@ def create_cache(hook, config: Config) -> dict:
     }
 
     try:
-        hook.save_cache(config=config, cache=cache)
+        retry_on_exception(
+            functools.partial(
+                hook.save_cache,
+                config=config,
+                cache=cache
+            ),
+            logger=log,
+            func_name="hook.save_cache"
+        )
     except Exception as exc:
         log.error("Unable to save cache: %s", str(exc))
         # raise an application specific exception that will be

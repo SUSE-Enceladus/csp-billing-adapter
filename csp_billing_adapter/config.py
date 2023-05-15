@@ -14,9 +14,13 @@
 # limitations under the License.
 #
 """config.py is part of csp-billing-adapter and defines the Config class"""
+
+import functools
 import logging
 import yaml
 from yaml.parser import ParserError
+
+from csp_billing_adapter.utils import retry_on_exception
 
 log = logging.getLogger('CSPBillingAdapter')
 
@@ -83,7 +87,14 @@ class Config(dict):
         """
 
         defaults = {}
-        hook.load_defaults(defaults=defaults)
+        retry_on_exception(
+            functools.partial(
+                hook.load_defaults,
+                defaults=defaults
+            ),
+            logger=log,
+            func_name="hook.load_defaults"
+        )
 
         log.debug("Config defaults loaded: %s", defaults)
 

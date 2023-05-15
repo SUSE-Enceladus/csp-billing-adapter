@@ -52,7 +52,13 @@ def test_create_csp_config(cba_pm, cba_config):
     assert timestamp + delta == expire
 
 
-def test_create_csp_config_save_exception(cba_pm, cba_config, caplog):
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_create_csp_config_save_exception(
+    mock_sleep,
+    cba_pm,
+    cba_config,
+    caplog
+):
     # csp_config should initially be empty
     assert cba_pm.hook.get_csp_config(config=cba_config) == {}
 

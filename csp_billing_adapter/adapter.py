@@ -17,6 +17,7 @@
 """Core event loop for csp-billing-adapter."""
 
 import datetime
+import functools
 import logging
 import os
 import sys
@@ -39,6 +40,7 @@ from csp_billing_adapter.exceptions import (
 from csp_billing_adapter.utils import (
     date_to_string,
     get_now,
+    retry_on_exception,
     string_to_date
 )
 from csp_billing_adapter.bill_utils import process_metering
@@ -101,15 +103,29 @@ def initial_adapter_setup(
     hook,
     config: Config,
     log: logging.Logger
-) -> None:
+) -> (dict, dict):
     """Initial setup before starting event loop."""
 
     log.debug("Setting up the adapter via hook")
-    hook.setup_adapter(config=config)
+    retry_on_exception(
+        functools.partial(
+            hook.setup_adapter,
+            config=config
+        ),
+        logger=log,
+        func_name="hook.setup_adapter"
+    )
 
     log.debug("Initializing the csp_config")
     try:
-        csp_config = hook.get_csp_config(config=config)
+        csp_config = retry_on_exception(
+            functools.partial(
+                hook.get_csp_config,
+                config=config
+            ),
+            logger=log,
+            func_name="hook.get_csp_config"
+        )
     except Exception as e:
         log.warning(
             "Failed to retrieve existing CSP config: %s",
@@ -122,7 +138,14 @@ def initial_adapter_setup(
 
     log.debug("Initializing the cache")
     try:
-        cache = hook.get_cache(config=config)
+        cache = retry_on_exception(
+            functools.partial(
+                hook.get_cache,
+                config=config
+            ),
+            logger=log,
+            func_name="hook.get_cache"
+        )
     except Exception as e:
         log.warning(
             "Failed to retrieve existing cache: %s",
@@ -150,7 +173,14 @@ def event_loop_handler(
     csp_config['errors'] = []
 
     try:
-        usage = hook.get_usage_data(config=config)
+        usage = retry_on_exception(
+            functools.partial(
+                hook.get_usage_data,
+                config=config
+            ),
+            logger=log,
+            func_name="hook.get_usage_data"
+        )
         log.debug('Retrieved usage data: %s', usage)
     except Exception as exc:
         usage = None
@@ -191,10 +221,15 @@ def event_loop_handler(
 
     log.info("Updating cache with: %s", cache)
     try:
-        hook.update_cache(
-            config=config,
-            cache=cache,
-            replace=False
+        retry_on_exception(
+            functools.partial(
+                hook.update_cache,
+                config=config,
+                cache=cache,
+                replace=False
+            ),
+            logger=log,
+            func_name="hook.update_cache"
         )
     except Exception as error:
         log.warning("Failed to save cache to datastore: %s", str(error))
@@ -206,10 +241,15 @@ def event_loop_handler(
 
     log.info("Updating CSP config with: %s", csp_config)
     try:
-        hook.update_csp_config(
-            config=config,
-            csp_config=csp_config,
-            replace=False
+        retry_on_exception(
+            functools.partial(
+                hook.update_csp_config,
+                config=config,
+                csp_config=csp_config,
+                replace=False
+            ),
+            logger=log,
+            func_name="hook.update_csp_config"
         )
     except Exception as error:
         log.warning("Failed to save csp_config to datastore: %s", str(error))
@@ -242,11 +282,16 @@ def main() -> None:
                 config.usage_metrics[metric]['dimensions']
             ))['dimension']
 
-            pm.hook.meter_billing(
-                config=config,
-                dimensions={dimension: 0},
-                timestamp=csp_config['timestamp'],
-                dry_run=True
+            retry_on_exception(
+                functools.partial(
+                    pm.hook.meter_billing,
+                    config=config,
+                    dimensions={dimension: 0},
+                    timestamp=csp_config['timestamp'],
+                    dry_run=True
+                ),
+                log,
+                func_name="hook.meter_billing"
             )
         except KeyError as key:
             raise CSPBillingAdapterException(
