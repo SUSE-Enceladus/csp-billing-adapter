@@ -137,12 +137,12 @@ def initial_adapter_setup(
 
 
 def event_loop_handler(
+    now: datetime.datetime,
     hook,
     config: Config,
     log: logging.Logger
-) -> datetime.datetime:
+) -> None:
     """Perform the event loop processing actions."""
-    now = get_now()
     log.info('Starting event loop processing')
 
     try:
@@ -197,7 +197,6 @@ def event_loop_handler(
         process_metering(config, cache, hook, empty_metering=True)
 
     log.info('Finishing event loop processing')
-    return now
 
 
 def main() -> None:
@@ -242,10 +241,13 @@ def main() -> None:
         time.sleep(config.query_interval)  # wait 1 cycle for usage data
 
         while True:
-            start = event_loop_handler(pm.hook, config, log)
+            start = get_now()
+            event_loop_handler(start, pm.hook, config, log)
             log.info("Processed event loop at %s", date_to_string(start))
 
-            query_interval_remainder = (get_now() - start).total_seconds()
+            query_interval_remainder = (
+                config.query_interval - (get_now() - start).total_seconds()
+            )
             log.debug("Sleeping for %g seconds", query_interval_remainder)
             time.sleep(query_interval_remainder)
     except KeyboardInterrupt:
