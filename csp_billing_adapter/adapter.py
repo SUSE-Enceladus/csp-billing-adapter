@@ -247,7 +247,13 @@ def main() -> None:
         time.sleep(config.query_interval)  # wait 1 cycle for usage data
 
         while True:
-            now = event_loop_handler(pm.hook, config, log)
+            now = event_loop_handler(
+                pm.hook,
+                config,
+                log,
+                cache,
+                csp_config
+            )
             log.info("Processed event loop at %s", date_to_string(now))
 
             log.debug("Sleeping for %d seconds", config.query_interval)
