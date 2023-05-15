@@ -110,4 +110,7 @@ def cba_pm(cba_config):
 
 @pytest.fixture
 def cba_log():
-    return logging.getLogger('CSPBillingAdapter')
+    log = logging.getLogger('CSPBillingAdapter')
+    log.setLevel(logging.DEBUG)
+
+    return log
