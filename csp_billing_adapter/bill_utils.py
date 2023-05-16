@@ -19,6 +19,7 @@ Utility functions for calculating CSP billing details for the usage
 metrics specified in the provided config.
 """
 
+import datetime
 import logging
 import math
 
@@ -30,7 +31,6 @@ from csp_billing_adapter.utils import (
     date_to_string,
     get_next_bill_time,
     get_prev_bill_time,
-    get_now,
     get_date_delta,
     string_to_date
 )
@@ -332,9 +332,11 @@ def filter_usage_records_in_billing_period(
 
 
 def process_metering(
-    config: Config,
-    cache: dict,
     hook,
+    config: Config,
+    now: datetime.datetime,
+    cache: dict,
+    csp_config: dict,
     empty_metering: bool = False
 ) -> None:
     """
@@ -359,22 +361,26 @@ def process_metering(
     latest billable usage details and the and the time that the last
     bill was submitted..
 
-    :param config:
-        The configuration specifying the metrics that need to be
-        processed to determine billable usage and dimensions.
-    :param cache:
-        The cache data store contents that will be used to determine
-        the billable usage details.
     :param hook:
         The Pluggy plugin manager hook that will be used to call the
         meter_billing operation.
+    :param config:
+        The configuration specifying the metrics that need to be
+        processed to determine billable usage and dimensions.
+    :param now:
+        The current time as a datetime object.
+    :param cache:
+        The cache data store contents that will be used to determine
+        the billable usage details.
+    :param csp_config:
+        The csp_config data store contents that will be updated with
+        billing info and errors.
     :param empty_metering:
         A flag indicating if an empty (zeroed) metering record should be
         submitted, and if not not the csp_config and cache data stores
         will be updated appropriately to relfect a successful metering
         operation.
     """
-    now = get_now()
     log.debug(
         "Processing metering at time %s, empty_metering=%s",
         date_to_string(now),
@@ -392,8 +398,10 @@ def process_metering(
     log.debug("Billable records: %s", billable_records)
 
     # the remaining records not selected as billable
-    remaining_records = [record for record in usage_records
-                         if record not in billable_records]
+    remaining_records = [
+        record for record in usage_records
+        if record not in billable_records
+    ]
     log.debug("Remaining records: %s", remaining_records)
 
     # determine billable usage and associated billable dimensions
@@ -425,17 +433,10 @@ def process_metering(
             timestamp=now,
             dry_run=False
         )
-    except Exception as e:
-        log.exception(e)
-        hook.update_csp_config(
-            config=config,
-            csp_config={
-                'timestamp': date_to_string(now),
-                'billing_api_access_ok': False,
-                'errors': [str(e)]
-            },
-            replace=False
-        )
+    except Exception as error:
+        log.exception(error)
+        csp_config['errors'].append(str(error))
+        csp_config['billing_api_access_ok'] = False
     else:
         log.info(
             "Metering submitted, record_id: %s",
@@ -447,16 +448,10 @@ def process_metering(
             get_date_delta(now, config.reporting_interval)
         )
 
-        cache_updates = {
-            'next_reporting_time': next_reporting_time
-        }
+        cache['next_reporting_time'] = next_reporting_time
 
-        csp_config_updates = {
-            'billing_api_access_ok': True,
-            'errors': [],
-            'timestamp': metering_time,
-            'expire': next_reporting_time
-        }
+        csp_config['billing_api_access_ok'] = True
+        csp_config['expire'] = next_reporting_time
 
         if not empty_metering:
             # Usage was billed
@@ -472,32 +467,17 @@ def process_metering(
             )
 
             cache_meter_record(
-                hook,
-                config,
+                cache,
                 record_id,
                 billed_dimensions,
-                metering_time,
-                next_bill_time,
-                remaining_records=remaining_records
+                metering_time
             )
+            cache['usage_records'] = remaining_records
+            cache['next_bill_time'] = next_bill_time
 
             log.debug(
                 "Adding metering details to csp_config updates: %s",
-                csp_config_updates
+                csp_config
             )
-            csp_config_updates['usage'] = billable_usage
-            csp_config_updates['last_billed'] = metering_time
-
-        log.info("Updating CSP config with: %s", csp_config_updates)
-        hook.update_csp_config(
-            config=config,
-            csp_config=csp_config_updates,
-            replace=False
-        )
-
-        log.info("Updating cache with: %s", cache_updates)
-        hook.update_cache(
-            config=config,
-            cache=cache_updates,
-            replace=False
-        )
+            csp_config['usage'] = billable_usage
+            csp_config['last_billed'] = metering_time

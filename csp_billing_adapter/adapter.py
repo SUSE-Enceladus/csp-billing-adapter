@@ -129,6 +129,7 @@ def initial_adapter_setup(
             str(e)
         )
         cache = {}
+
     if not cache:
         cache = create_cache(hook, config)
 
@@ -137,50 +138,27 @@ def initial_adapter_setup(
 
 
 def event_loop_handler(
-    now: datetime.datetime,
     hook,
     config: Config,
-    log: logging.Logger
+    log: logging.Logger,
+    now: datetime.datetime,
+    cache: dict,
+    csp_config: dict
 ) -> None:
     """Perform the event loop processing actions."""
     log.info('Starting event loop processing')
+    csp_config['errors'] = []
 
     try:
         usage = hook.get_usage_data(config=config)
+        log.debug('Retrieved usage data: %s', usage)
     except Exception as exc:
+        usage = None
         log.warning("Failed to retrieve usage data: %s", str(exc))
-        hook.update_csp_config(
-            config=config,
-            csp_config={
-                'timestamp': date_to_string(now),
-                'billing_api_access_ok': False,
-                'errors': [
-                    f'Usage data retrieval failed: {exc}'
-                ]
-            },
-            replace=False
-        )
-        # NOTE:
-        # If this happens during initial deployment timeframe, failing
-        # to retrieve usage data here could simple mean that there is
-        # nothing to bill for yet so not proceeding to metering makes
-        # sense.
-        # If this occurs for an existing deployment, with valid usage
-        # records waiting to be billed, continuing on to metering is
-        # worth considering.
-        # However, doing so will currently result in the error state
-        # that was saved in the csp_config being lost, as it would be
-        # overwritten with a success state, or a different error.
+        csp_config['errors'].append(f'Usage data retrieval failed: {exc}')
 
-        log.info('Finishing event loop processing - get_usage_data() error')
-        return now
-
-    log.debug('Retrieved usage data: %s', usage)
-
-    add_usage_record(hook, config, usage)
-
-    # handle metering/billing updates
-    cache = hook.get_cache(config=config)
+    if usage:
+        add_usage_record(usage, cache)
 
     log.debug(
         "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
@@ -191,10 +169,51 @@ def event_loop_handler(
 
     if now >= string_to_date(cache['next_bill_time']):
         log.info('Attempt a billing cycle update')
-        process_metering(config, cache, hook)
+        process_metering(
+            hook,
+            config,
+            now,
+            cache,
+            csp_config
+        )
     elif now >= string_to_date(cache['next_reporting_time']):
         log.info('Attempt a reporting cycle update')
-        process_metering(config, cache, hook, empty_metering=True)
+        process_metering(
+            hook,
+            config,
+            now,
+            cache,
+            csp_config,
+            empty_metering=True
+        )
+
+    # Backup cache to datastore
+
+    log.info("Updating cache with: %s", cache)
+    try:
+        hook.update_cache(
+            config=config,
+            cache=cache,
+            replace=False
+        )
+    except Exception as error:
+        log.warning("Failed to save cache to datastore: %s", str(error))
+        csp_config['errors'].append(f'Cache failed to save: {error}')
+
+    csp_config['timestamp'] = date_to_string(now)
+
+    # Backup csp-config to datastore
+
+    log.info("Updating CSP config with: %s", csp_config)
+    try:
+        hook.update_csp_config(
+            config=config,
+            csp_config=csp_config,
+            replace=False
+        )
+    except Exception as error:
+        log.warning("Failed to save csp_config to datastore: %s", str(error))
+        csp_config['errors'].append(f'csp_config failed to save: {error}')
 
     log.info('Finishing event loop processing')
 
@@ -242,7 +261,14 @@ def main() -> None:
 
         while True:
             start = get_now()
-            event_loop_handler(start, pm.hook, config, log)
+            event_loop_handler(
+                pm.hook,
+                config,
+                log,
+                start,
+                cache,
+                csp_config
+            )
             log.info("Processed event loop at %s", date_to_string(start))
 
             query_interval_remainder = (

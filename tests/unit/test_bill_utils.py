@@ -18,6 +18,7 @@
 # Unit tests for the csp_billing_adapter.bill_utils
 #
 
+import copy
 import datetime
 
 from unittest import mock
@@ -408,6 +409,7 @@ def test_process_metering(cba_pm, cba_config):
         hook=cba_pm.hook,
         config=cba_config
     )
+    now = get_now()
 
     test_cache = cba_pm.hook.get_cache(config=cba_config)
     assert 'adapter_start_time' in test_cache
@@ -430,20 +432,18 @@ def test_process_metering(cba_pm, cba_config):
     # add generated usage records to cache
     for record in test_usage_data:
         add_usage_record(
-            hook=cba_pm.hook,
-            config=cba_config,
-            record=record
+            record=record,
+            cache=test_cache
         )
 
-    test_cache = cba_pm.hook.get_cache(config=cba_config)
     assert test_cache["usage_records"] == test_usage_data
 
     test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
     assert test_csp_config == {}
 
     create_csp_config(cba_pm.hook, cba_config)
-
     test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+
     assert 'billing_api_access_ok' in test_csp_config
     assert test_csp_config['billing_api_access_ok'] is True
     assert 'timestamp' in test_csp_config
@@ -458,19 +458,18 @@ def test_process_metering(cba_pm, cba_config):
         # perform an empty metering operation, which shouldn't
         # modify usage records content, and should show that
         # billing API access is still ok.
-        cache_data = cba_pm.hook.get_cache(config=cba_config)
         process_metering(
-            config=cba_config,
-            cache=cache_data,
             hook=cba_pm.hook,
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config,
             empty_metering=True
         )
 
-        test_cache = cba_pm.hook.get_cache(config=cba_config)
-        assert test_cache["usage_records"] == cache_data['usage_records']
+        assert test_cache["usage_records"] == test_usage_data
         assert test_cache["last_bill"] == {}
 
-        test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
         assert test_csp_config['billing_api_access_ok'] is True
         assert test_csp_config['errors'] == []
 
@@ -478,15 +477,14 @@ def test_process_metering(cba_pm, cba_config):
         # bill for usage records in the current billing period, and
         # then will update the cache to reflect the new billing period
         # and removed billed usage records
-        cache_data = cba_pm.hook.get_cache(config=cba_config)
         process_metering(
-            config=cba_config,
-            cache=cache_data,
             hook=cba_pm.hook,
-            empty_metering=False
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config
         )
 
-        test_cache = cba_pm.hook.get_cache(config=cba_config)
         # the extra records before and after the billing period
         # should remain.
         assert test_cache["usage_records"] == [
@@ -495,7 +493,6 @@ def test_process_metering(cba_pm, cba_config):
         ]
         assert test_cache["last_bill"] != {}
 
-        test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
         assert test_csp_config['billing_api_access_ok'] is True
         assert test_csp_config['errors'] == []
         assert 'usage' in test_csp_config
@@ -505,30 +502,29 @@ def test_process_metering(cba_pm, cba_config):
         'csp_billing_adapter.local_csp.randrange',
         return_value=4  # meter_billing will fail
     ):
-        cache_data = cba_pm.hook.get_cache(config=cba_config)
-        csp_config_data = cba_pm.hook.get_csp_config(config=cba_config)
+        last_bill = copy.deepcopy(test_cache['last_bill'])
+        usage_records = copy.deepcopy(test_cache['usage_records'])
 
         # verify that a failed meter_billing() is handled correctly
         process_metering(
-            config=cba_config,
-            cache=cache_data,
             hook=cba_pm.hook,
-            empty_metering=True
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config
         )
 
-        test_cache = cba_pm.hook.get_cache(config=cba_config)
-        assert test_cache["usage_records"] == cache_data['usage_records']
-        assert test_cache["last_bill"] == cache_data['last_bill']
+        assert test_cache["usage_records"] == usage_records
+        assert test_cache["last_bill"] == last_bill
 
-        test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
         assert test_csp_config['billing_api_access_ok'] is False
         assert test_csp_config['errors'] != []
-        assert test_csp_config['timestamp'] != csp_config_data['timestamp']
 
 
 @mark.config('config_dimensions_gap.yaml')
 def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
     metric = list(cba_config.usage_metrics.keys())[0]  # first defined metric
+    now = get_now()
 
     # initialise the cache
     create_cache(
@@ -559,12 +555,10 @@ def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
     # add generated usage records to cache
     for record in test_usage_data:
         add_usage_record(
-            hook=cba_pm.hook,
-            config=cba_config,
-            record=record
+            record=record,
+            cache=test_cache
         )
 
-    test_cache = cba_pm.hook.get_cache(config=cba_config)
     assert test_cache["usage_records"] == test_usage_data
 
     test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
@@ -584,22 +578,21 @@ def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
         'csp_billing_adapter.local_csp.randrange',
         return_value=0  # meter_billing will succeed
     ):
-        cache_data = cba_pm.hook.get_cache(config=cba_config)
-        csp_config_data = cba_pm.hook.get_csp_config(config=cba_config)
+        last_bill = copy.deepcopy(test_cache['last_bill'])
+        usage_records = copy.deepcopy(test_cache['usage_records'])
 
         # verify that a failed get_billing_dimensions() is handled correctly
         process_metering(
-            config=cba_config,
-            cache=cache_data,
             hook=cba_pm.hook,
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config,
             empty_metering=False
         )
 
-        test_cache = cba_pm.hook.get_cache(config=cba_config)
-        assert test_cache["usage_records"] == cache_data['usage_records']
-        assert test_cache["last_bill"] == cache_data['last_bill']
+        assert test_cache["usage_records"] == usage_records
+        assert test_cache["last_bill"] == last_bill
 
-        test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
         assert test_csp_config['billing_api_access_ok'] is False
         assert test_csp_config['errors'] != []
-        assert test_csp_config['timestamp'] != csp_config_data['timestamp']
