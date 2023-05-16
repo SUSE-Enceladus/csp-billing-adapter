@@ -15,12 +15,9 @@
 #
 """config.py is part of csp-billing-adapter and defines the Config class"""
 
-import functools
 import logging
 import yaml
 from yaml.parser import ParserError
-
-from csp_billing_adapter.utils import retry_on_exception
 
 log = logging.getLogger('CSPBillingAdapter')
 
