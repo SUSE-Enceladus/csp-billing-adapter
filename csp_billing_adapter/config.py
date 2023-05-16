@@ -87,14 +87,7 @@ class Config(dict):
         """
 
         defaults = {}
-        retry_on_exception(
-            functools.partial(
-                hook.load_defaults,
-                defaults=defaults
-            ),
-            logger=log,
-            func_name="hook.load_defaults"
-        )
+        hook.load_defaults(defaults=defaults)
 
         log.debug("Config defaults loaded: %s", defaults)
 
