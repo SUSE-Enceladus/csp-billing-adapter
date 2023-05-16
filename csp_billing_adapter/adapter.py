@@ -111,7 +111,7 @@ def initial_adapter_setup(
     try:
         csp_config = hook.get_csp_config(config=config)
     except Exception as e:
-        log.warning(
+        log.debug(
             "Failed to retrieve existing CSP config: %s",
             str(e)
         )
@@ -124,7 +124,7 @@ def initial_adapter_setup(
     try:
         cache = hook.get_cache(config=config)
     except Exception as e:
-        log.warning(
+        log.debug(
             "Failed to retrieve existing cache: %s",
             str(e)
         )
