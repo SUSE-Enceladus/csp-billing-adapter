@@ -229,6 +229,7 @@ def test_event_loop_handler(
     assert 'usage' not in csp_config
     assert 'last_billed' not in csp_config
     assert csp_config['timestamp'] == date_to_string(event_time)
+    assert csp_config['base_product'] == 'cpe:/o:suse:product:v1.2.3'
 
     #
     # Advance to next_reporting_time

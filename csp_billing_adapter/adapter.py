@@ -193,6 +193,7 @@ def event_loop_handler(
 
     if usage:
         add_usage_record(usage, cache)
+        csp_config['base_product'] = usage.get('base_product', '')
 
     log.debug(
         "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
