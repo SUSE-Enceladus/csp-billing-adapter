@@ -20,13 +20,19 @@ leverage Pluggy hooks to perform the implementation specific
 low-level CSP config management operations.
 """
 
+import functools
 import logging
 
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.exceptions import (
     FailedToSaveCSPConfigError
 )
-from csp_billing_adapter.utils import get_now, date_to_string, get_date_delta
+from csp_billing_adapter.utils import (
+    date_to_string,
+    get_date_delta,
+    get_now,
+    retry_on_exception
+)
 
 log = logging.getLogger('CSPBillingAdapter')
 
@@ -46,17 +52,33 @@ def create_csp_config(
     """
     now = get_now()
     expire = date_to_string(get_date_delta(now, config.reporting_interval))
+    account_info = retry_on_exception(
+        functools.partial(
+            hook.get_account_info,
+            config=config
+        ),
+        logger=log,
+        func_name="hook.get_account_info"
+    )
 
     csp_config = {
         'billing_api_access_ok': True,
         'timestamp': date_to_string(now),
         'expire': expire,
-        'customer_csp_data': hook.get_account_info(config=config),
+        'customer_csp_data': account_info,
         'errors': []
     }
 
     try:
-        hook.save_csp_config(config=config, csp_config=csp_config)
+        retry_on_exception(
+            functools.partial(
+                hook.save_csp_config,
+                config=config,
+                csp_config=csp_config
+            ),
+            logger=log,
+            func_name="hook.save_csp_config"
+        )
     except Exception as exc:
         # raise an application specific exception that will be
         # caught by the event loop in main() and cause an exit

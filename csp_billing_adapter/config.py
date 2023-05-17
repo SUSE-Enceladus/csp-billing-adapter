@@ -14,6 +14,7 @@
 # limitations under the License.
 #
 """config.py is part of csp-billing-adapter and defines the Config class"""
+
 import logging
 import yaml
 from yaml.parser import ParserError

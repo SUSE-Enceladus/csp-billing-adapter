@@ -403,7 +403,8 @@ def test_get_billing_dimensions(cba_config):
 
 
 @mark.config('config_testing_mixed.yaml')
-def test_process_metering(cba_pm, cba_config):
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_process_metering(mock_sleep, cba_pm, cba_config):
     # initialise the cache
     create_cache(
         hook=cba_pm.hook,

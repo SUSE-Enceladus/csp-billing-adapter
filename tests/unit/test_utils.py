@@ -17,8 +17,13 @@
 test_utils is part of csp-billing-adapter and provides units tests
 for the utils functions.
 """
+
 import datetime
+import functools
+from unittest import mock
+
 from pytest import raises
+
 from csp_billing_adapter import utils
 
 
@@ -123,3 +128,152 @@ def test_good_get_prev_bill_time_test():
         datetime.datetime(2023, 4, 20, 13, 13, 30),
         'test') == \
         datetime.datetime(2023, 4, 20, 13, 8, 30)
+
+
+def succeeding_func(message):
+    """Helper function that returns passed argument."""
+    return message
+
+
+def failing_func(message):
+    """Helper function that raises Exception with passed argument."""
+    raise Exception(message)
+
+
+def test_retry_on_exception_success(cba_log, caplog):
+    """Verify correct handling of a successful function call."""
+
+    message = "Mock testing"
+
+    succeeding_call = functools.partial(succeeding_func, message)
+
+    # test succeeding_call
+    result = utils.retry_on_exception(
+        succeeding_call,
+        logger=cba_log
+    )
+
+    # ensure expected value was returned
+    assert result == message
+
+    # verify that we saw an attempt to call the function
+    assert (
+        "Attempting to run '%s'" % succeeding_call.func.__name__
+    ) in caplog.text
+
+
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_retry_on_exception_failure(mock_sleep, cba_log, caplog):
+    """Verify correct handling of a failing function call."""
+
+    error = "Mock testing exception"
+
+    failing_call = functools.partial(failing_func, error)
+
+    exceptions = Exception
+    retry_count = 3
+    retry_delay = 1
+    delay_factor = 1
+
+    # test failing_call
+    with raises(Exception) as exc:
+        utils.retry_on_exception(
+            failing_call,
+            exceptions=exceptions,
+            retry_count=retry_count,
+            retry_delay=retry_delay,
+            delay_factor=delay_factor,
+            logger=cba_log
+        )
+
+    # ensure failing_func() exception was eventually raised
+    assert str(exc.value) == error
+
+    # verify that we saw an attempt to call the function
+    assert (
+        "Attempting to run '%s'" % failing_call.func.__name__
+    ) in caplog.text
+
+    # verify that the exception was caught
+    assert (
+        "Caught exception: %s" % error
+    ) in caplog.text
+
+    # verify that all expected retries occurred
+    for i in range(retry_count, 0, -1):
+        assert (
+            "%s, retry after %g second%s, %d attempt%s remaining..." % (
+                error,
+                retry_delay,
+                '',
+                i,
+                's' if i != 1 else ''
+            )
+        ) in caplog.text
+
+    # verify that exhaustion of retries occurred
+    assert (
+        "Retries exhausted, re-raising: %s" % error
+    ) in caplog.text
+
+
+def test_retry_on_exception_param_corrections(caplog):
+    """Verify invalid parameter correct logic."""
+
+    message = "Mock testing"
+
+    succeeding_call = functools.partial(succeeding_func, message)
+
+    check_params = [
+        ('retry_count', 0, 1),
+        ('retry_count', -1, 1),
+        ('retry_delay', 0, 1),
+        ('retry_delay', -0.1, 0.1),
+        ('delay_factor', 0, 1),
+        ('delay_factor', -1, 1)
+    ]
+
+    for param, bad_value, corrected_value in check_params:
+
+        # test succeeding_call with param that needs correction
+        result = utils.retry_on_exception(
+            **{
+                "func_call": succeeding_call,
+                param: bad_value
+            }
+        )
+
+        # ensure expected value was returned
+        assert result == message
+
+        # ensure param was corrected
+        assert (
+            "Specified %s %g corrected to %g" % (
+                param,
+                bad_value,
+                corrected_value
+            )
+        ) in caplog.text
+
+
+def test_retry_on_exception_func_name(caplog):
+    """Verify correct handling for func_name param."""
+
+    message = "Mock testing"
+    func_name = "MockTesting"
+
+    succeeding_call = functools.partial(succeeding_func, message)
+
+    # test succeeding_call
+    result = utils.retry_on_exception(
+        succeeding_call,
+        func_name=func_name
+    )
+
+    # ensure expected value was returned
+    assert result == message
+
+    # verify that we saw an attempt to call the function
+    assert (
+        "Attempting to run '%s'" % func_name
+    ) in caplog.text
