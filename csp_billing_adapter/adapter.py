@@ -72,9 +72,13 @@ def get_plugin_manager() -> pluggy.PluginManager:
 
 def setup_logging(hook) -> logging.Logger:
     """Setup basic logging"""
-    logging.basicConfig()
+    logging.basicConfig(
+        format='%(asctime)s.%(msecs)03d|%(levelname)s|%(name)s|%(message)s',
+        datefmt='%Y-%m-%dT%H:%M:%S'
+    )
     log = logging.getLogger('CSPBillingAdapter')
     log.setLevel(logging.INFO)
+    logging.Formatter.converter = time.gmtime
 
     log.info("CSPBillingAdapter logging setup complete")
     return log
