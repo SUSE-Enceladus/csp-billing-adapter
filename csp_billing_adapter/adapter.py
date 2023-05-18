@@ -298,6 +298,10 @@ def main() -> None:
                 log,
                 func_name="hook.meter_billing"
             )
+        except AttributeError as attr_error:
+            raise CSPBillingAdapterException(
+                f'Billing adapter config is invalid. {attr_error}'
+            )
         except KeyError as key:
             raise CSPBillingAdapterException(
                 f'Billing adapter config is invalid. Config is missing {key}'

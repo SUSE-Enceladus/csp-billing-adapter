@@ -392,6 +392,100 @@ def test_event_loop_handler_usage_data_error(
         assert csp_config['timestamp'] == date_to_string(event_time)
 
 
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_event_loop_handler_update_cache_error(
+    mock_sleep,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    event_time = get_now()
+
+    error = Exception("Simulated failed update_cache() Error")
+
+    initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
+    cache = cba_pm.hook.get_cache(config=cba_config)
+    csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+
+    with mock.patch.object(
+        cba_pm.hook,
+        'update_cache',
+        side_effect=error
+    ):
+        event_loop_handler(
+            cba_pm.hook,
+            cba_config,
+            cba_log,
+            event_time,
+            cache,
+            csp_config
+        )
+
+        # simulated error's message should be in the log
+        assert str(error) in caplog.text
+
+        # update_cache exception handling's error message should be in log
+        assert (
+            'Failed to save cache to datastore: %s' % str(error)
+        ) in caplog.text
+
+        # confirm that csp_config's errors list contains expected error
+        assert f'Cache failed to save: {error}' in csp_config['errors']
+
+        # end of event loop processing message should be in log
+        assert 'Finishing event loop processing' in caplog.text
+
+        assert csp_config['timestamp'] == date_to_string(event_time)
+
+
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_event_loop_handler_update_csp_config_error(
+    mock_sleep,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    event_time = get_now()
+
+    error = Exception("Simulated failed update_csp_config() Error")
+
+    initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
+    cache = cba_pm.hook.get_cache(config=cba_config)
+    csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+
+    with mock.patch.object(
+        cba_pm.hook,
+        'update_csp_config',
+        side_effect=error
+    ):
+        event_loop_handler(
+            cba_pm.hook,
+            cba_config,
+            cba_log,
+            event_time,
+            cache,
+            csp_config
+        )
+
+        # simulated error's message should be in the log
+        assert str(error) in caplog.text
+
+        # update_csp_config exception handling's error message should be in log
+        assert (
+            'Failed to save csp_config to datastore: %s' % str(error)
+        ) in caplog.text
+
+        # confirm that csp_config's errors list contains expected error
+        assert f'csp_config failed to save: {error}' in csp_config['errors']
+
+        # end of event loop processing message should be in log
+        assert 'Finishing event loop processing' in caplog.text
+
+        assert csp_config['timestamp'] == date_to_string(event_time)
+
+
 @mock.patch('csp_billing_adapter.local_csp.randrange')
 @mock.patch('csp_billing_adapter.adapter.time.sleep')
 @mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
@@ -427,7 +521,8 @@ def test_main(
             cba_main()
         assert e.value.code == 99
 
-    # test catching CSP Billing Adapter exception
+    # test catching CSP Billing Adapter exception caused by
+    # NoMatchingVolumeDimensionError.
     with mock.patch(
         'csp_billing_adapter.adapter.event_loop_handler',
         side_effect=NoMatchingVolumeDimensionError('metric', 9999)
@@ -453,6 +548,72 @@ def test_main(
         with pytest.raises(SystemExit) as e:
             cba_main()
         assert e.value.code == 2
+
+
+@mock.patch('csp_billing_adapter.local_csp.randrange')
+@mock.patch('csp_billing_adapter.adapter.time.sleep')
+@mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
+@mock.patch('csp_billing_adapter.adapter.get_config')
+@mock.patch('csp_billing_adapter.adapter.setup_logging')
+@pytest.mark.config('config_no_usage_metrics.yaml')
+def test_main_attrubute_error_handling(
+    mock_setup_logging,
+    mock_get_config,
+    mock_get_pm,
+    mock_sleep,
+    mock_rand,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+
+    mock_get_pm.return_value = cba_pm
+    mock_setup_logging.return_value = cba_log
+    mock_get_config.return_value = cba_config
+    mock_rand.return_value = 0
+
+    # test catching CSP Billing Adapter exception caused by AttributeError
+    with pytest.raises(SystemExit) as e:
+        cba_main()
+    assert e.value.code == 2
+    assert (
+        "Billing adapter config is invalid. 'Config' object has no "
+        "attribute 'usage_metrics'"
+    ) in caplog.text
+
+
+@mock.patch('csp_billing_adapter.local_csp.randrange')
+@mock.patch('csp_billing_adapter.adapter.time.sleep')
+@mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
+@mock.patch('csp_billing_adapter.adapter.get_config')
+@mock.patch('csp_billing_adapter.adapter.setup_logging')
+@pytest.mark.config('config_no_dimensions.yaml')
+def test_main_key_error_handling(
+    mock_setup_logging,
+    mock_get_config,
+    mock_get_pm,
+    mock_sleep,
+    mock_rand,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+
+    mock_get_pm.return_value = cba_pm
+    mock_setup_logging.return_value = cba_log
+    mock_get_config.return_value = cba_config
+    mock_rand.return_value = 0
+
+    # test catching CSP Billing Adapter exception caused by KeyError
+    with pytest.raises(SystemExit) as e:
+        cba_main()
+    assert e.value.code == 2
+    assert (
+        "Billing adapter config is invalid. Config is missing "
+        "'dimensions'"
+    ) in caplog.text
 
 
 @mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
