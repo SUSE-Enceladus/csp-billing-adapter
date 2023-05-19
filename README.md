@@ -36,10 +36,10 @@ layer. These include **`setup_adapter`**, **`load_defaults`**, and
 ## Configuration
 
 The adapter is configured via a YAML file that is accesible to the
-binary. The config file is used to setup the different intervals for billing
-and usage updates. As well as the billing dimensions which are used to
-determine each metered billing. The following is what a config file may
-look like:
+binary. The config file is used to setup the different intervals for
+billing and usage updates. It is also where the billing dimensions
+are configured. These dimensions are used to determine each metered
+billing. The following is what a config file may look like:
 
 ```
 version: 1.1.1
@@ -165,9 +165,9 @@ reporting is due.
 
 **usage_records:** This is a list of usage records accrued since
 the last metered bill. Each record is a dictionary containing the usage
-data, reporting_time and base_product. Where reporting_time is a timestamp
-that denotes when the usage record was reported and base_product is a CPE
-product + version string.
+data, `reporting_time` and `base_product`. Where `reporting_time` is a
+timestamp that denotes when the usage record was reported and
+`base_product` is a CPE product + version string.
 
 **last_bill:** This is a dictionary containing info about the last bill.
 
@@ -214,24 +214,40 @@ or down for some amount of time.
 
 ### Errors
 
-For all errors an error will be added to "errors" list in csp-config. "..." denotes an extended error message which will change based on the specific error. If the adapter is unable to access metered billing API it will also set "billing_api_access_ok" to False. If any error state is noticed in csp-config it should be communicated proactively to the customer through UI.
+For all errors an error will be added to "errors" list in csp-config. "..."
+denotes an extended error message which will change based on the specific
+error. If the adapter is unable to access metered billing API it will also
+set `billing_api_access_ok` to False. If any error state is noticed in
+csp-config it should be communicated proactively to the customer through UI.
 
-- If the adapter cannot find the neuvector-usage CR or cannot get new records then the adapter will add an error:
-    - "Usage data retrieval failed: ..."
-- If the adapter has trouble processing the metering then the adapter will:
-    - Add error message to list. The specific message will be based on the error that occurs.
-    - Set "billing_api_access_ok" to False
-- If the adapter cannot save csp-config to configMap it will add an error:
-    - "csp_config failed to save: ..."
-    - However, this error won't be visible to the application since the data is not able to save to configMap.
-- If the adapter cannot save cache to secret it will add an error:
-    - "cache failed to save: ..."
+#### Startup errors
+
 - At startup if the adapter config is invalid an error will be added:
     - "Billing adapter config is invalid. Config is missing {key}" 
-- At startup if the adapter has no access to billing API an error will be added:
+- At startup if the adapter has no access to billing API an error will
+  be added:
     - "Fatal error while validating metering API access: ..."
+
+#### Operational errors
+
+- If the adapter cannot retrieve usage data then the adapter will add
+  an error:
+    - "Usage data retrieval failed: ..."
+- If the adapter has trouble processing the metering then the adapter
+  will:
+    - Add error message to list. The specific message will be based on
+      the error that occurs.
+    - Set `billing_api_access_ok` to False
+- If the adapter cannot save csp-config it will add an error:
+    - "`csp-config` failed to save: ..."
+    - However, this error won't be visible to the application since
+      the data is not able to save.
+- If the adapter cannot save cache it will add an error:
+    - "cache failed to save: ..."
+
+#### Unrecoverable errors
+
 - If there is an unexpected error the adapter will add an error message then crash:
     - "Unexpected error: ..."
-    - If we trip over any of these in testing we will want to handle them more elgeantly
 - If there is an expected but unrecoverable error an error will be added then adapter will crash:
     - "CSP Billing Adapter error: ..."
