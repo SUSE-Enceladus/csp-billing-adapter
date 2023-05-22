@@ -34,7 +34,8 @@ from csp_billing_adapter.adapter import (
     setup_logging
 )
 from csp_billing_adapter.exceptions import (
-    NoMatchingVolumeDimensionError
+    NoMatchingVolumeDimensionError,
+    FailedToSaveCSPConfigError
 )
 from csp_billing_adapter.utils import (
     get_now,
@@ -125,12 +126,18 @@ def test_initial_adapter_setup_csp_config_errors(
         'get_csp_config',
         side_effect=error
     ):
-        cache, csp_config, = initial_adapter_setup(
+        # test save_csp_config() hook raises an exception
+        with mock.patch.object(
             cba_pm.hook,
-            cba_config,
-            cba_log
-        )
-        assert str(error) in caplog.text
+            'save_csp_config',
+            side_effect=error
+        ):
+            with pytest.raises(FailedToSaveCSPConfigError):
+                initial_adapter_setup(
+                    cba_pm.hook,
+                    cba_config,
+                    cba_log
+                )
 
 
 @mock.patch('csp_billing_adapter.adapter.time.sleep')
