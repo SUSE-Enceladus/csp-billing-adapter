@@ -295,7 +295,7 @@ def main() -> None:
                     timestamp=csp_config['timestamp'],
                     dry_run=True
                 ),
-                log,
+                logger=log,
                 func_name="hook.meter_billing"
             )
         except AttributeError as attr_error:
