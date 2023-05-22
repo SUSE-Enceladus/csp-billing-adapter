@@ -292,7 +292,7 @@ def main() -> None:
                     pm.hook.meter_billing,
                     config=config,
                     dimensions={dimension: 0},
-                    timestamp=csp_config['timestamp'],
+                    timestamp=get_now(),
                     dry_run=True
                 ),
                 logger=log,
