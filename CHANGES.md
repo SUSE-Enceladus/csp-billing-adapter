@@ -1,3 +1,10 @@
+v0.1.1 (2023-05-22)
+-------------------
+
+- Fix retry on exception in the meter billing test.
+- Fix the timestamp in meter billing test call. This is
+  a datetime object not a string timestamp.
+
 v0.1.0 (2023-05-18)
 -------------------
 
