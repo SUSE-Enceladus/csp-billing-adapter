@@ -659,7 +659,7 @@ def test_main_sleep(
 
     # get_now() is called at the start of the main loop, and again to
     # get the current time to determine how much time to sleep for.
-    mock_get_now.side_effect = [event_time, now]
+    mock_get_now.side_effect = [now, event_time, now]
 
     # time.sleep is called before the main loop runs, which needs to
     # succeed, but the next call, at the end of the main loop should
