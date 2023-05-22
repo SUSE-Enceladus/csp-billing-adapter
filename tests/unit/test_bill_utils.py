@@ -442,8 +442,8 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
     test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
     assert test_csp_config == {}
 
-    create_csp_config(cba_pm.hook, cba_config)
-    test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+    account_info = {'cusomter': 'data'}
+    test_csp_config = create_csp_config(cba_config, account_info)
 
     assert 'billing_api_access_ok' in test_csp_config
     assert test_csp_config['billing_api_access_ok'] is True
@@ -565,9 +565,9 @@ def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
     test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
     assert test_csp_config == {}
 
-    create_csp_config(cba_pm.hook, cba_config)
+    account_info = {'cusomter': 'data'}
+    test_csp_config = create_csp_config(cba_config, account_info)
 
-    test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
     assert 'billing_api_access_ok' in test_csp_config
     assert test_csp_config['billing_api_access_ok'] is True
     assert 'timestamp' in test_csp_config

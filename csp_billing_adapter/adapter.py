@@ -35,7 +35,8 @@ from csp_billing_adapter.csp_config import (
     create_csp_config,
 )
 from csp_billing_adapter.exceptions import (
-    CSPBillingAdapterException
+    CSPBillingAdapterException,
+    FailedToSaveCSPConfigError
 )
 from csp_billing_adapter.utils import (
     date_to_string,
@@ -138,7 +139,33 @@ def initial_adapter_setup(
         csp_config = {}
 
     if not csp_config:
-        csp_config = create_csp_config(hook, config)
+        account_info = retry_on_exception(
+            functools.partial(
+                hook.get_account_info,
+                config=config
+            ),
+            logger=log,
+            func_name="hook.get_account_info"
+        )
+
+        csp_config = create_csp_config(config, account_info)
+
+        try:
+            retry_on_exception(
+                functools.partial(
+                    hook.save_csp_config,
+                    config=config,
+                    csp_config=csp_config
+                ),
+                logger=log,
+                func_name="hook.save_csp_config"
+            )
+        except Exception as exc:
+            # raise an application specific exception that will be
+            # caught by the event loop in main() and cause an exit
+            # with a failure status.
+            log.error("Unable to save CSP config: %s", str(exc))
+            raise FailedToSaveCSPConfigError(str(exc)) from exc
 
     log.debug("Initializing the cache")
     try:

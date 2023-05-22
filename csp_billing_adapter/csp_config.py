@@ -20,46 +20,33 @@ leverage Pluggy hooks to perform the implementation specific
 low-level CSP config management operations.
 """
 
-import functools
 import logging
 
 from csp_billing_adapter.config import Config
-from csp_billing_adapter.exceptions import (
-    FailedToSaveCSPConfigError
-)
 from csp_billing_adapter.utils import (
     date_to_string,
     get_date_delta,
-    get_now,
-    retry_on_exception
+    get_now
 )
 
 log = logging.getLogger('CSPBillingAdapter')
 
 
 def create_csp_config(
-    hook,
     config: Config,
+    account_info: dict
 ) -> dict:
     """
     Initialize the csp_config data store.
 
-    :param hook:
-        The Pluggy plugin manager hook used to call the save_csp_cache()
-        operation.
     :param config:
         The configuration settings associated with the CSP.
+    :param account_info:
+        A dictionary containing CSP account info that is
+        added to the csp_config.
     """
     now = get_now()
     expire = date_to_string(get_date_delta(now, config.reporting_interval))
-    account_info = retry_on_exception(
-        functools.partial(
-            hook.get_account_info,
-            config=config
-        ),
-        logger=log,
-        func_name="hook.get_account_info"
-    )
 
     csp_config = {
         'billing_api_access_ok': True,
@@ -68,23 +55,6 @@ def create_csp_config(
         'customer_csp_data': account_info,
         'errors': []
     }
-
-    try:
-        retry_on_exception(
-            functools.partial(
-                hook.save_csp_config,
-                config=config,
-                csp_config=csp_config
-            ),
-            logger=log,
-            func_name="hook.save_csp_config"
-        )
-    except Exception as exc:
-        # raise an application specific exception that will be
-        # caught by the event loop in main() and cause an exit
-        # with a failure status.
-        log.error("Unable to save CSP config: %s", str(exc))
-        raise FailedToSaveCSPConfigError(str(exc)) from exc
 
     log.debug("CSP config initialized with: %s", csp_config)
     return csp_config
