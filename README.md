@@ -219,7 +219,7 @@ errors are encountered they will be appended to this list which will be saved
 in the "errors" field of the csp-config. This means that any errors reported
 in the csp-config are from the most recent run.
 
-In the example errors below as "..." denotes an extended error message which
+In the example errors below, "..." denotes an extended error message which
 will change based on the specific error. If the adapter is unable to access
 metered billing API it will also set `billing_api_access_ok` to False. If any
 error state is noticed in csp-config it should be communicated proactively to
