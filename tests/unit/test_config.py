@@ -36,7 +36,7 @@ def test_get_config_from_good_config_file():
         good_config_file,
         pm.hook
     )
-    assert config.get('version') == '1.1.1'
+    assert config.get('version') == '0.1.1'
     assert config.product_code == 'foo'
 
 

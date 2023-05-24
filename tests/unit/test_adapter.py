@@ -34,6 +34,7 @@ from csp_billing_adapter.adapter import (
     setup_logging
 )
 from csp_billing_adapter.exceptions import (
+    CSPBillingAdapterException,
     NoMatchingVolumeDimensionError,
     FailedToSaveCSPConfigError
 )
@@ -79,6 +80,28 @@ def test_get_config(cba_pm, cba_config, cba_config_path, cba_log):
     config = get_config(cba_config_path, cba_pm.hook, cba_log)
 
     assert config == cba_config
+
+
+@pytest.mark.config('config_missing_version.yaml')
+def test_get_config_missing_version(
+    cba_pm,
+    cba_config_path,
+    cba_log
+):
+    """Verify correct operation of get_config()."""
+    with pytest.raises(CSPBillingAdapterException):
+        get_config(cba_config_path, cba_pm.hook, cba_log)
+
+
+@pytest.mark.config('config_bad_version.yaml')
+def test_get_config_bad_version(
+    cba_pm,
+    cba_config_path,
+    cba_log
+):
+    """Verify correct operation of get_config()."""
+    with pytest.raises(CSPBillingAdapterException):
+        get_config(cba_config_path, cba_pm.hook, cba_log)
 
 
 def test_initial_adapter_setup_no_errors(

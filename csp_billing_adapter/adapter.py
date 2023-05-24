@@ -52,6 +52,8 @@ from csp_billing_adapter import (
 )
 
 DEFAULT_CONFIG_PATH = '/etc/csp_billing_adapter/config.yaml'
+CONFIG_MIN = '0.0.0'
+CONFIG_MAX = '1.0.0'
 
 config_path = os.environ.get('CSP_ADAPTER_CONFIG_FILE') or DEFAULT_CONFIG_PATH
 
@@ -96,6 +98,20 @@ def get_config(
         config_path,
         hook
     )
+
+    try:
+        version = config['version']
+    except KeyError:
+        raise CSPBillingAdapterException(
+            'Invalid config file. Missing "version" attribute.'
+        )
+
+    if not (CONFIG_MIN <= version < CONFIG_MAX):
+        raise CSPBillingAdapterException(
+            'Incompatible config file. Found version: {version}, '
+            'expecting version between {CONFIG_MIN} '
+            'and {CONFIG_MAX}.'
+        )
 
     # If there is anything sensitive in config we may want to add
     # a __str__() method that sanitizes it.

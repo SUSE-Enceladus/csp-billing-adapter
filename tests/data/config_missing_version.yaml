@@ -8,21 +8,21 @@ usage_metrics:
     consumption_reporting: volume
     dimensions:
     - dimension: tier_1
-      min: 0
       max: 15
+      min: 0
     - dimension: tier_2
-      min: 16
       max: 50
+      min: 16
     - dimension: tier_3
-      min: 51
       max: 100
+      min: 51
     - dimension: tier_4
-      min: 101
       max: 250
+      min: 101
     - dimension: tier_5
+      max: 1000
       min: 251
-      max: 500
-    # missing a final dimension for 501+
+    - dimension: tier_6
+      min: 1001
     min_consumption: 5
     usage_aggregation: average
-version: 0.1.1

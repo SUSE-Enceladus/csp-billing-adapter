@@ -256,3 +256,7 @@ the customer through UI.
     - "Unexpected error: ..."
 - If there is an expected but unrecoverable error an error will be added then adapter will crash:
     - "CSP Billing Adapter error: ..."
+- If the config file is missing the version attribute the adapter will raise an error:
+    - "Invalid config file. Missing 'version' attribute."
+- If the config file has an incompatible version the adapter will raise an error that starts with:
+    - "Incompatible config file. Found version: ..."
