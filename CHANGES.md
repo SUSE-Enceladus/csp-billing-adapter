@@ -1,3 +1,8 @@
+v0.2.0 (2023-06-07)
+-------------------
+
+- Split up `create_csp_config` into smaller components.
+
 v0.1.1 (2023-05-22)
 -------------------
 
