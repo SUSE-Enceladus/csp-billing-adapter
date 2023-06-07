@@ -21,7 +21,7 @@
 Name:           csp-billing-adapter
 Version:        0.2.0
 Release:        0
-Summary:        TBD
+Summary:        Reports marketplace billing information to CSP API
 License:        Apache-2.0
 Group:          Development/Languages/Python
 URL:            https://github.com/SUSE-Enceladus/csp-billing-adapter
