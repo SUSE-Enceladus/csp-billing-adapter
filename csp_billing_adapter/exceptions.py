@@ -49,3 +49,7 @@ class FailedToSaveCSPConfigError(CSPBillingAdapterException):
 
 class FailedToSaveCacheError(CSPBillingAdapterException):
     """Exception raised when cache save/update fails."""
+
+
+class CSPMetadataRetrievalError(CSPBillingAdapterException):
+    """Exception raised for issues with the retrieval of CSP metadata."""
