@@ -51,5 +51,5 @@ class FailedToSaveCacheError(CSPBillingAdapterException):
     """Exception raised when cache save/update fails."""
 
 
-class MetadataCollectorError(CSPBillingAdapterException):
-    """Exception raised when there is an issue with the metadata collection."""
+class CSPMetadataRetrievalError(CSPBillingAdapterException):
+    """Exception raised when there is an issue with the retrieval of CSP metadata."""
