@@ -52,4 +52,4 @@ class FailedToSaveCacheError(CSPBillingAdapterException):
 
 
 class CSPMetadataRetrievalError(CSPBillingAdapterException):
-    """Exception raised when there is an issue with the retrieval of CSP metadata."""
+    """Exception raised for issues with the retrieval of CSP metadata."""
