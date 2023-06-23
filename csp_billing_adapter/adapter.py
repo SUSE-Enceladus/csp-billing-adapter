@@ -290,25 +290,23 @@ def event_loop_handler(
     log.info('Finishing event loop processing')
 
 
-def main() -> None:
+def metering_test(
+    hook,
+    config: Config,
+    log: logging.Logger,
+    csp_config: dict
+) -> None:
     """
-    Main routine, implementing the event loop for the csp_billing_adapter.
+    Perform a dry-run metering operation to test that metering is supported
+    by submitting a random dimension with a metric of 0.
     """
-    pm = get_plugin_manager()
-
+    # catch any exceptions raised by the metering test, attempting
+    # to update the csp_config with the error encountered.
     try:
-        log = setup_logging(pm.hook)
 
-        config = get_config(
-            config_path,
-            pm.hook,
-            log
-        )
-
-        cache, csp_config = initial_adapter_setup(pm.hook, config, log)
-
+        # perform the metering test, catching and re-raising any
+        # handled exceptions appropriately.
         try:
-            # Test metering API access with random dimension metric
             metric = next(iter(config.usage_metrics))
             dimension = next(iter(
                 config.usage_metrics[metric]['dimensions']
@@ -316,7 +314,7 @@ def main() -> None:
 
             retry_on_exception(
                 functools.partial(
-                    pm.hook.meter_billing,
+                    hook.meter_billing,
                     config=config,
                     dimensions={dimension: 0},
                     timestamp=get_now(),
@@ -337,6 +335,51 @@ def main() -> None:
             raise CSPBillingAdapterException(
                 f'Fatal error while validating metering API access: {error}'
             )
+
+    except Exception as error:
+        err_msg = f'Metering test failed: {error}'
+        csp_config['errors'].append(err_msg)
+        log.error(err_msg)
+        log.info("Updating CSP config with: %s", csp_config)
+
+        try:
+            retry_on_exception(
+                functools.partial(
+                    hook.update_csp_config,
+                    config=config,
+                    csp_config=csp_config,
+                    replace=False
+                ),
+                logger=log,
+                func_name="hook.update_csp_config"
+            )
+        except Exception as update_csp_error:
+            log.error(
+                "Failed to save csp_config to datastore: %s",
+                str(update_csp_error)
+            )
+
+        raise
+
+
+def main() -> None:
+    """
+    Main routine, implementing the event loop for the csp_billing_adapter.
+    """
+    pm = get_plugin_manager()
+
+    try:
+        log = setup_logging(pm.hook)
+
+        config = get_config(
+            config_path,
+            pm.hook,
+            log
+        )
+
+        cache, csp_config = initial_adapter_setup(pm.hook, config, log)
+
+        metering_test(pm.hook, config, log, csp_config)
 
         time.sleep(config.query_interval)  # wait 1 cycle for usage data
 
