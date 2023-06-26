@@ -31,9 +31,11 @@ from csp_billing_adapter.adapter import (
     get_plugin_manager,
     initial_adapter_setup,
     main as cba_main,
-    setup_logging
+    setup_logging,
+    metering_test
 )
 from csp_billing_adapter.exceptions import (
+    CSPBillingAdapterException,
     NoMatchingVolumeDimensionError,
     FailedToSaveCSPConfigError
 )
@@ -557,70 +559,159 @@ def test_main(
         assert e.value.code == 2
 
 
-@mock.patch('csp_billing_adapter.local_csp.randrange')
-@mock.patch('csp_billing_adapter.adapter.time.sleep')
-@mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
-@mock.patch('csp_billing_adapter.adapter.get_config')
-@mock.patch('csp_billing_adapter.adapter.setup_logging')
 @pytest.mark.config('config_no_usage_metrics.yaml')
-def test_main_attrubute_error_handling(
-    mock_setup_logging,
-    mock_get_config,
-    mock_get_pm,
-    mock_sleep,
-    mock_rand,
+def test_metering_test_attrubute_error_handling(
     cba_pm,
     cba_config,
     cba_log,
     caplog
 ):
-
-    mock_get_pm.return_value = cba_pm
-    mock_setup_logging.return_value = cba_log
-    mock_get_config.return_value = cba_config
-    mock_rand.return_value = 0
-
-    # test catching CSP Billing Adapter exception caused by AttributeError
-    with pytest.raises(SystemExit) as e:
-        cba_main()
-    assert e.value.code == 2
-    assert (
+    err_msg = (
         "Billing adapter config is invalid. 'Config' object has no "
         "attribute 'usage_metrics'"
-    ) in caplog.text
+    )
+
+    cache, csp_config = initial_adapter_setup(
+        cba_pm.hook,
+        cba_config,
+        cba_log
+    )
+    assert cache != {}
+    assert csp_config != {}
+
+    # test catching CSPBillingAdapterException caused by AttributeError
+    with pytest.raises(CSPBillingAdapterException) as e:
+        metering_test(
+            cba_pm.hook,
+            cba_config,
+            cba_log,
+            csp_config
+        )
+    assert err_msg in str(e)
+    assert err_msg in caplog.text
 
 
-@mock.patch('csp_billing_adapter.local_csp.randrange')
-@mock.patch('csp_billing_adapter.adapter.time.sleep')
-@mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
-@mock.patch('csp_billing_adapter.adapter.get_config')
-@mock.patch('csp_billing_adapter.adapter.setup_logging')
 @pytest.mark.config('config_no_dimensions.yaml')
-def test_main_key_error_handling(
-    mock_setup_logging,
-    mock_get_config,
-    mock_get_pm,
-    mock_sleep,
-    mock_rand,
+def test_metering_test_key_error_handling(
     cba_pm,
     cba_config,
     cba_log,
     caplog
 ):
-
-    mock_get_pm.return_value = cba_pm
-    mock_setup_logging.return_value = cba_log
-    mock_get_config.return_value = cba_config
-    mock_rand.return_value = 0
-
-    # test catching CSP Billing Adapter exception caused by KeyError
-    with pytest.raises(SystemExit) as e:
-        cba_main()
-    assert e.value.code == 2
-    assert (
+    err_msg = (
         "Billing adapter config is invalid. Config is missing "
         "'dimensions'"
-    ) in caplog.text
+    )
+
+    cache, csp_config = initial_adapter_setup(
+        cba_pm.hook,
+        cba_config,
+        cba_log
+    )
+    assert cache != {}
+    assert csp_config != {}
+
+    # test catching CSPBillingAdapterException caused by KeyError
+    with pytest.raises(CSPBillingAdapterException) as e:
+        metering_test(
+            cba_pm.hook,
+            cba_config,
+            cba_log,
+            csp_config
+        )
+    assert err_msg in str(e)
+    assert err_msg in caplog.text
+
+
+@mock.patch('csp_billing_adapter.adapter.time.sleep')
+def test_metering_test_meter_billing_failure(
+    mock_sleep,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    err_exc = Exception('Mock Failure')
+    err_msg = (
+        "Fatal error while validating metering API access: "
+        f"{str(err_exc)}"
+    )
+
+    cache, csp_config = initial_adapter_setup(
+        cba_pm.hook,
+        cba_config,
+        cba_log
+    )
+    assert cache != {}
+    assert csp_config != {}
+
+    with mock.patch.object(
+        cba_pm.hook,
+        'meter_billing',
+        side_effect=err_exc
+    ):
+        # test catching CSPBillingAdapterException caused by
+        # meter_billing() fatal exception.
+        with pytest.raises(CSPBillingAdapterException) as e:
+            metering_test(
+                cba_pm.hook,
+                cba_config,
+                cba_log,
+                csp_config
+            )
+        assert err_msg in str(e)
+        assert err_msg in caplog.text
+
+
+@mock.patch('csp_billing_adapter.adapter.time.sleep')
+def test_metering_test_meter_billing_and_update_csp_config_failure(
+    mock_sleep,
+    cba_pm,
+    cba_config,
+    cba_log,
+    caplog
+):
+    err_exc = Exception('Mock Failure')
+    err_msg1 = (
+        "Fatal error while validating metering API access: "
+        f"{str(err_exc)}"
+    )
+    err_msg2 = (
+        "Failed to save csp_config to datastore: "
+        f"{str(err_exc)}"
+    )
+
+    cache, csp_config = initial_adapter_setup(
+        cba_pm.hook,
+        cba_config,
+        cba_log
+    )
+    assert cache != {}
+    assert csp_config != {}
+
+    with mock.patch.object(
+        cba_pm.hook,
+        'meter_billing',
+        side_effect=err_exc
+    ):
+        with mock.patch.object(
+            cba_pm.hook,
+            'update_csp_config',
+            side_effect=err_exc
+        ):
+            # test catching CSPBillingAdapterException caused by
+            # meter_billing() fatal exception along with an
+            # update_csp_config() failure.
+            with pytest.raises(CSPBillingAdapterException) as e:
+                metering_test(
+                    cba_pm.hook,
+                    cba_config,
+                    cba_log,
+                    csp_config
+                )
+            assert err_msg1 in str(e)
+            assert err_msg1 in caplog.text
+            assert err_msg2 in caplog.text
 
 
 @mock.patch('csp_billing_adapter.adapter.get_plugin_manager')
