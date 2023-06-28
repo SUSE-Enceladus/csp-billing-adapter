@@ -1,3 +1,9 @@
+v0.3.0 (2023-06-28)
+-------------------
+
+- Add new exception type
+- Improved initial metering test exception handling
+
 v0.2.0 (2023-06-07)
 -------------------
 
