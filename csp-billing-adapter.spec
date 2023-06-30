@@ -48,6 +48,20 @@ BuildArch:      noarch
 Configurable isolation layer that provides the information needed
 to report billing information to the CSP API.
 
+%package service
+Summary:        The unit file for csp billing adapter 
+Group:          System/Management
+Requires:       csp-billing-adapter = %{version}
+# pkg-config is needed to find correct systemd unit dir
+BuildRequires:  pkg-config
+BuildRequires:  pkgconfig(systemd)
+%{?systemd_requires}
+
+%description service
+This package contains the unti file for the csp billing adapter. It is
+separated to avoid pulling systemd into container builds of the code. We only
+want the dependency on systemd when the adapter runs in a VM.
+
 %prep
 %autosetup -n %{name}-%{version}
 
@@ -57,11 +71,25 @@ to report billing information to the CSP API.
 %install
 %python_install
 %python_expand %fdupes %{buildroot}%{$python_sitelib}
+mkdir -p %{buildroot}%{_unitdir}
+install -m 644 systemd/csp-billing-adapter.service %{buildroot}%{_unitdir}
 
 %check
 %if %{with test}
 %pytest
 %endif
+
+%post service
+%service_add_post csp-billing-adapter.service
+
+%postun service
+%service_del_postun csp-billing-adapter.service
+
+%pre service
+%service_add_pre csp-billing-adapter.service
+
+%preun service
+%service_del_preun csp-billing-adapter.service
 
 %files %{python_files}
 %license LICENSE
@@ -69,5 +97,8 @@ to report billing information to the CSP API.
 %{python_sitelib}/csp_billing_adapter
 %{python_sitelib}/csp_billing_adapter-%{version}*-info
 %{_bindir}/%{name}
+
+%files service
+%{_unitdir}/csp-billing-adapter.service
 
 %changelog
