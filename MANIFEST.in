@@ -7,6 +7,7 @@ include requirements.txt
 include requirements-test.txt
 include requirements-dev.txt
 
+recursive-include systemd *
 recursive-include tests *
 recursive-exclude * __pycache__
 recursive-exclude * *.coverage
