@@ -86,13 +86,20 @@ you can use the `tox` command with no arguments:
 $ tox
 ```
 
-*NOTE:* By default tox is configured to run the pytest coverage tests for
-Python versions 3.6 to 3.12, inclusively, skipping any versions that aren't
-available. See [pyenv](https://github.com/pyenv/pyenv) for a solution that
-allows multiple versions of Python to be installed and available to support
+*NOTE1*: By default tox is configured to run the pytest coverage tests for
+all supported Python versions, skipping any versions that aren't available.
+See [pyenv](https://github.com/pyenv/pyenv) for a solution that allows
+multiple versions of Python to be installed and available to support local
 testing.
 
-If you just want to run the recommended code quality and verification tests
+*NOTE2*: On openSUSE Leap systems with a distro packages tox (version 2.9.1)
+if you have additional systemn Python versions installed, e.g. python3.10,
+you may see errors from tox related to trying to setup virtial environments
+for Python 3.10. If so it is recommened to create a virtialenv and install
+the latest version of tox available for your Python version, and use that
+tox command.
+
+If you want to run just the recommended code quality and verification tests
 using your system's default `python3` version, you can explicity select the
 `dev` testing environment when running tox:
 
