@@ -20,6 +20,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .[dev]
+        pip install tox-gh-actions
     - name: Lint with flake8
       run: |
         flake8 csp_billing_adapter
@@ -27,13 +28,16 @@ jobs:
     - name: Test with pytest
       run: |
         pytest --cov=csp_billing_adapter
+    - name: Test with tox
+      run: |
+        tox
   
   testall:
 
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10", 3.11]
+        python-version: [3.7, 3.8, 3.9, "3.10", 3.11, 3.12]
 
     steps:
     - uses: actions/checkout@v2
@@ -45,6 +49,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .[dev]
+        pip install tox-gh-actions
     - name: Lint with flake8
       run: |
         flake8 csp_billing_adapter
@@ -52,3 +57,6 @@ jobs:
     - name: Test with pytest
       run: |
         pytest --cov=csp_billing_adapter
+    - name: Test with tox
+      run: |
+        tox

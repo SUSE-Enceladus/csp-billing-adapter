@@ -5,8 +5,12 @@ Installation
 $ git clone https://github.com/SUSE-Enceladus/csp-billing-adapter.git
 $ cd csp-billing-adapter
 
-# Activate virtual Environment then install
-# csp-billing-adapter and dev dependences in editable mode
+# Create a Python Virtual Environment (venv) using:
+# $ python3 -m venv <path_to_venv>
+# Activate the Virtual Environment using:
+# $ . <path_to_venv>/bin/activate
+# And then install csp-billing-adapter in editable mode, along with it's
+# dependencies and the recommended dev support tools.
 $ pip install -e .[dev]
 ```
 
@@ -15,7 +19,7 @@ mode.
 
 *NOTE*: You will need to create a `~/.config/csp-billing-adapter.yaml` with
 appropriate configuration settings to be able to run the `csp-billing-adapter`
-command.
+command directly.
 
 Dev Requirements
 ================
@@ -63,6 +67,39 @@ $ git tag -a v{version}
 $ git push --tags
 ```
 
+Testing with tox
+================
+The `tox` tool automatically creates appropriately configured Python
+virtual environments that can be used to run the code quality and
+verification tests, avoiding the need for the user to create an
+appropriate Python virtual environment.
+
+The `tox.ini` settings should work with versions of tox >= 2.9.1; the
+latest tox version available for your system's Python version should
+be available in your virtualenv if you installed the developer tools
+using `pip install -e .[dev]`.
+
+If you want to run the recommended code quality and verification tests
+you can use the `tox` command with no arguments:
+
+```shell
+$ tox
+```
+
+*NOTE:* By default tox is configured to run the pytest coverage tests for
+Python versions 3.6 to 3.12, inclusively, skipping any versions that aren't
+available. See [pyenv](https://github.com/pyenv/pyenv) for a solution that
+allows multiple versions of Python to be installed and available to support
+testing.
+
+If you just want to run the recommended code quality and verification tests
+using your system's default `python3` version, you can explicity select the
+`dev` testing environment when running tox:
+
+```shell
+$ tox -e dev
+```
+
 Unit & Integration Tests
 ========================
 
@@ -74,6 +111,13 @@ The tests and coverage can be run directly via pytest.
 $ pytest --cov=csp_billing_adapter
 ```
 
+Alternatively you can explicitly run just the pytest coverage tests using
+`tox`:
+
+```shell
+$ tox -e pytest
+```
+
 Code Style
 ==========
 
@@ -81,6 +125,13 @@ Source should pass flake8 and pep8 standards.
 
 ```shell
 $ flake8 csp_billing_adapter
+```
+
+Alternatively you can explicitly run just the code quality checks using
+`tox`:
+
+```shell
+$ tox -e check
 ```
 
 Signing Commits
