@@ -1,3 +1,8 @@
+v0.3.1 (2023-07-03)
+-------------------
+
+- Add sub RPM package with systemd file to support run in a VM as daemon
+
 v0.3.0 (2023-06-28)
 -------------------
 
