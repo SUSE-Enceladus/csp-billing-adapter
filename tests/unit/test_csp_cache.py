@@ -150,7 +150,7 @@ def test_cache_meter_record(cba_pm, cba_config):
         }
     ]
     test_dimensions = {'dim1': 1, 'dim2': 2}
-    test_record_id = "some_record_id"
+    test_record_ids = {'dim1': 'some_record_id', 'dim2': 'some_record_id'}
 
     # cache should initially be empty
     assert cba_pm.hook.get_cache(config=cba_config) == {}
@@ -180,14 +180,14 @@ def test_cache_meter_record(cba_pm, cba_config):
     # usage record
     cache_meter_record(
         cache=cache,
-        record_id=test_record_id,
+        record_ids=test_record_ids,
         dimensions=test_dimensions,
         metering_time=test_time1
     )
 
     assert cache['last_bill'] != {}
-    assert 'record_id' in cache['last_bill']
-    assert cache['last_bill']['record_id'] == test_record_id
+    assert 'record_ids' in cache['last_bill']
+    assert cache['last_bill']['record_ids'] == test_record_ids
     assert 'dimensions' in cache['last_bill']
     assert cache['last_bill']['dimensions'] == test_dimensions
     assert 'metering_time' in cache['last_bill']
