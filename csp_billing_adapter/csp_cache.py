@@ -110,25 +110,25 @@ def add_usage_record(record: dict, cache: dict) -> None:
 
 def cache_meter_record(
     cache: dict,
-    record_id: str,
+    record_ids: dict,
     dimensions: dict,
     metering_time: str
 ) -> None:
     """
     Update the cache data store to reflect the fact that a successful CSP
-    metering operation was performed, storing the record_id returned by
+    metering operation was performed, storing the record_ids returned by
     the CSP, the billing dimensions submitted in the metering operation,
     the time at which it was performed, and the time after which the next
     billing operation will be performed.
 
-    :param record_id:
-        The record id returned by the CSP to track the billing
-        submission.
+    :param record_ids:
+        A mapping of dimensions to record ids returned by the CSP to track
+        the billing submission.
     :param dimensions: The billing dimensions submitted to the CSP.
     :param metering_time: The time at which the submission occurred.
     """
     cache['last_bill'] = {
         'dimensions': dimensions,
-        'record_id': record_id,
+        'record_ids': record_ids,
         'metering_time': metering_time
     }

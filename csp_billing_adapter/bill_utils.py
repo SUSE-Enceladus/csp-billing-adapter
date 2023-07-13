@@ -429,7 +429,7 @@ def process_metering(
             billed_dimensions
         )
 
-        record_id = retry_on_exception(
+        record_ids = retry_on_exception(
             functools.partial(
                 hook.meter_billing,
                 config=config,
@@ -440,14 +440,17 @@ def process_metering(
             logger=log,
             func_name="hook.meter_billing"
         )
+        if type(record_ids) is str:
+            dimension_name = list(billed_dimensions.keys())[0]
+            record_ids = {dimension_name: record_ids}
     except Exception as error:
         log.exception(error)
         csp_config['errors'].append(str(error))
         csp_config['billing_api_access_ok'] = False
     else:
         log.info(
-            "Metering submitted, record_id: %s",
-            record_id
+            "Metering submitted, record_ids: %s",
+            record_ids
         )
 
         metering_time = date_to_string(now)
@@ -475,7 +478,7 @@ def process_metering(
 
             cache_meter_record(
                 cache,
-                record_id,
+                record_ids,
                 billed_dimensions,
                 metering_time
             )

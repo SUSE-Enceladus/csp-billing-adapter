@@ -40,7 +40,7 @@ def meter_billing(
     dimensions: dict,
     timestamp: datetime,
     dry_run: bool
-) -> str:
+) -> dict:
     """Simulate a CSP metering operation with a 5% chance of failure."""
     log.info('Mock CSP received metering of: %s', dimensions)
     seed = randrange(20)
