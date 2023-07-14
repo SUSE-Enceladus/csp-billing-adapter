@@ -33,7 +33,7 @@ from csp_billing_adapter.local_csp import (
 
 
 def test_meter_billing_ok(cba_config):
-    test_dimensions = {}
+    test_dimensions = {'dim_1': 10}
     test_timestamp = datetime.now()
     test_uuid = uuid.uuid4()
     test_randval = 1
@@ -46,14 +46,14 @@ def test_meter_billing_ok(cba_config):
             'csp_billing_adapter.local_csp.randrange',
             return_value=test_randval
         ):
-            billing_id = meter_billing(
+            status = meter_billing(
                 cba_config,
                 test_dimensions,
                 test_timestamp,
                 dry_run=False
             )
 
-            assert billing_id == str(test_uuid.hex)
+            assert status['dim_1']['record_id'] == str(test_uuid.hex)
 
 
 def test_meter_billing_error(cba_config):

@@ -214,13 +214,16 @@ def get_volume_dimensions(
 
 def get_billing_dimensions(
     config: Config,
-    billable_usage: dict
+    billable_usage: dict,
+    status: dict = None
 ) -> dict:
     """
     Construct a hash mapping each metric's appropriate billable
     dimension name to it's usage value in the 'billable_usage'
     hash, using the metric's dimension configuration settings
-    from the provided 'config'.
+    from the provided 'config'. If a status dictionary is provided
+    the previous metering attempt partially failed. Any metrics
+    that billed successfully will be skipped.
 
     :param config:
         The configuration specifying the metrics that need to be
@@ -228,11 +231,18 @@ def get_billing_dimensions(
     :param billable_usage:
         A hash mapping the usage metrics specific in the 'config' to
         their calculated usage values.
+    :param status:
+        A hash mapping the previous metering attempt status and
+        record ids. If the previous metering attempt was successful
+        the hash will be empty.
     :return:
         A hash mapping each metric tier's name to it's associated
         usage value.
     """
     billed_dimensions = {}
+
+    if not status:
+        status = {}
 
     log.debug(
         "Determining billable dimensions for usage: %s",
@@ -240,6 +250,12 @@ def get_billing_dimensions(
     )
 
     for usage_metric, usage in billable_usage.items():
+        if status.get(usage_metric, {}).get('status') == 'submitted':
+            log.debug(
+                'Skipping %s. Metric already billed for the current cycle'
+            )
+            continue
+
         metric_config = config.usage_metrics[usage_metric]
         consumption_reporting = metric_config['consumption_reporting']
 
@@ -333,6 +349,20 @@ def filter_usage_records_in_billing_period(
     return filtered_records
 
 
+def get_errors(status: dict):
+    """
+    Return a list of all error messages
+
+    Parse metering status dictionary for all error messages
+    and return a list. If none return an empty list.
+    """
+    errors = []
+
+    for dimension, data in status.items():
+        if 'error' in data:
+            errors.append(data['error'])
+
+
 def process_metering(
     hook,
     config: Config,
@@ -421,7 +451,8 @@ def process_metering(
 
         billed_dimensions = get_billing_dimensions(
             config,
-            billable_usage
+            billable_usage,
+            cache.get('status', {})
         )
 
         log.debug(
@@ -429,7 +460,7 @@ def process_metering(
             billed_dimensions
         )
 
-        record_ids = retry_on_exception(
+        status = retry_on_exception(
             functools.partial(
                 hook.meter_billing,
                 config=config,
@@ -440,17 +471,30 @@ def process_metering(
             logger=log,
             func_name="hook.meter_billing"
         )
-        if type(record_ids) is str:
-            dimension_name = list(billed_dimensions.keys())[0]
-            record_ids = {dimension_name: record_ids}
     except Exception as error:
         log.exception(error)
         csp_config['errors'].append(str(error))
         csp_config['billing_api_access_ok'] = False
     else:
+        errors = get_errors(status)
+        if errors:
+            for error in errors:
+                log.exception(error)
+                csp_config['errors'].append(str(error))
+
+            csp_config['billing_api_access_ok'] = False
+            cache['status'] = status
+            return
+        else:
+            # clear any previous failed state
+            try:
+                del cache['status']
+            except KeyError:
+                pass
+
         log.info(
-            "Metering submitted, record_ids: %s",
-            record_ids
+            "Metering submitted, status: %s",
+            status
         )
 
         metering_time = date_to_string(now)
@@ -478,7 +522,7 @@ def process_metering(
 
             cache_meter_record(
                 cache,
-                record_ids,
+                status,
                 billed_dimensions,
                 metering_time
             )

@@ -49,7 +49,14 @@ def meter_billing(
         log.warning("Simulating failed metering operation")
         raise Exception('Unable to submit meter usage. Payment not billed!')
     else:
-        return str(uuid.uuid4().hex)
+        status = {}
+        for dimension, quantity in dimensions.items():
+            status[dimension] = {
+                'record_id': str(uuid.uuid4().hex),
+                'status': 'succeeded'
+            }
+
+        return status
 
 
 @csp_billing_adapter.hookimpl(trylast=True)
