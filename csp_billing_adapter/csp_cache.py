@@ -110,7 +110,7 @@ def add_usage_record(record: dict, cache: dict) -> None:
 
 def cache_meter_record(
     cache: dict,
-    status: dict,
+    billing_status: dict,
     dimensions: dict,
     metering_time: str
 ) -> None:
@@ -121,7 +121,7 @@ def cache_meter_record(
     the time at which it was performed, and the time after which the next
     billing operation will be performed.
 
-    :param status:
+    :param billing_status:
         A mapping of dimensions to status. This includes record ids
         returned by the CSP to track the billing submission, status,
         and any error messages.
@@ -130,6 +130,6 @@ def cache_meter_record(
     """
     cache['last_bill'] = {
         'dimensions': dimensions,
-        'status': status,
+        'billing_status': billing_status,
         'metering_time': metering_time
     }

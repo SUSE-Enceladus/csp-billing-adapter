@@ -189,14 +189,14 @@ def test_cache_meter_record(cba_pm, cba_config):
     # usage record
     cache_meter_record(
         cache=cache,
-        status=test_status,
+        billing_status=test_status,
         dimensions=test_dimensions,
         metering_time=test_time1
     )
 
     assert cache['last_bill'] != {}
-    assert 'status' in cache['last_bill']
-    assert cache['last_bill']['status'] == test_status
+    assert 'billing_status' in cache['last_bill']
+    assert cache['last_bill']['billing_status'] == test_status
     assert 'dimensions' in cache['last_bill']
     assert cache['last_bill']['dimensions'] == test_dimensions
     assert 'metering_time' in cache['last_bill']

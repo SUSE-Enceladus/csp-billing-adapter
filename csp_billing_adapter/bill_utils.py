@@ -215,7 +215,7 @@ def get_volume_dimensions(
 def get_billing_dimensions(
     config: Config,
     billable_usage: dict,
-    status: dict = None
+    billing_status: dict = None
 ) -> dict:
     """
     Construct a hash mapping each metric's appropriate billable
@@ -231,7 +231,7 @@ def get_billing_dimensions(
     :param billable_usage:
         A hash mapping the usage metrics specific in the 'config' to
         their calculated usage values.
-    :param status:
+    :param billing_status:
         A hash mapping the previous metering attempt status and
         record ids. If the previous metering attempt was successful
         the hash will be empty.
@@ -239,10 +239,10 @@ def get_billing_dimensions(
         A hash mapping each metric tier's name to it's associated
         usage value.
     """
-    billed_dimensions = {}
+    if billing_status is None:
+        billing_status = {}
 
-    if not status:
-        status = {}
+    billed_dimensions = {}
 
     log.debug(
         "Determining billable dimensions for usage: %s",
@@ -250,7 +250,7 @@ def get_billing_dimensions(
     )
 
     for usage_metric, usage in billable_usage.items():
-        if status.get(usage_metric, {}).get('status') == 'submitted':
+        if billing_status.get(usage_metric, {}).get('status') == 'submitted':
             log.debug(
                 'Skipping %s. Metric already billed for the current cycle'
             )
@@ -349,7 +349,7 @@ def filter_usage_records_in_billing_period(
     return filtered_records
 
 
-def get_errors(status: dict):
+def get_errors(status: dict) -> list:
     """
     Return a list of all error messages
 
@@ -361,6 +361,8 @@ def get_errors(status: dict):
     for dimension, data in status.items():
         if 'error' in data:
             errors.append(data['error'])
+
+    return errors
 
 
 def process_metering(
@@ -452,7 +454,7 @@ def process_metering(
         billed_dimensions = get_billing_dimensions(
             config,
             billable_usage,
-            cache.get('status', {})
+            cache.get('billing_status', {})
         )
 
         log.debug(
@@ -460,7 +462,7 @@ def process_metering(
             billed_dimensions
         )
 
-        status = retry_on_exception(
+        billing_status = retry_on_exception(
             functools.partial(
                 hook.meter_billing,
                 config=config,
@@ -476,25 +478,25 @@ def process_metering(
         csp_config['errors'].append(str(error))
         csp_config['billing_api_access_ok'] = False
     else:
-        errors = get_errors(status)
+        errors = get_errors(billing_status)
         if errors:
             for error in errors:
                 log.exception(error)
                 csp_config['errors'].append(str(error))
 
             csp_config['billing_api_access_ok'] = False
-            cache['status'] = status
+            cache['billing_status'] = billing_status
             return
         else:
             # clear any previous failed state
             try:
-                del cache['status']
+                del cache['billing_status']
             except KeyError:
                 pass
 
         log.info(
-            "Metering submitted, status: %s",
-            status
+            "Metering submitted, billing status: %s",
+            billing_status
         )
 
         metering_time = date_to_string(now)
@@ -522,7 +524,7 @@ def process_metering(
 
             cache_meter_record(
                 cache,
-                status,
+                billing_status,
                 billed_dimensions,
                 metering_time
             )
