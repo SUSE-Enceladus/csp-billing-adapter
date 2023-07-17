@@ -27,4 +27,15 @@ usage_metrics:
       min: 1001
     min_consumption: 5
     usage_aggregation: average
+  users:
+    consumption_reporting: tiered
+    dimensions:
+    - dimension: dim_1
+      min: 0
+      max: 15
+    # missing a dim_2 dimension spanning 16-50
+    - dimension: dim_3
+      min: 51
+      max: 100
+    usage_aggregation: average
 version: 1.1.1

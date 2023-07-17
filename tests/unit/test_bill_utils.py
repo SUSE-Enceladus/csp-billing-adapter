@@ -33,6 +33,7 @@ from csp_billing_adapter.bill_utils import (
     get_billable_usage,
     get_billing_dimensions,
     get_max_usage,
+    get_tiered_dimensions,
     get_volume_dimensions,
     process_metering,
     get_errors
@@ -44,6 +45,8 @@ from csp_billing_adapter.csp_cache import (
 )
 from csp_billing_adapter.csp_config import create_csp_config
 from csp_billing_adapter.exceptions import (
+    ConsumptionReportingInvalidError,
+    MissingTieredDimensionError,
     NoMatchingVolumeDimensionError
 )
 from csp_billing_adapter.utils import (
@@ -113,7 +116,8 @@ def gen_mixed_usage_records(
                 )
             ),
             "jobs": 44,
-            "nodes": 9
+            "nodes": 9,
+            "instances": 222
         },
         {
             "reporting_time": date_to_string(
@@ -123,7 +127,8 @@ def gen_mixed_usage_records(
                 )
             ),
             "jobs": 15,
-            "nodes": 4
+            "nodes": 4,
+            "instances": 123
         },
         {
             "reporting_time": date_to_string(
@@ -133,7 +138,8 @@ def gen_mixed_usage_records(
                 )
             ),
             "jobs": 23,
-            "nodes": 6
+            "nodes": 6,
+            "instances": 159
         },
         {
             "reporting_time": date_to_string(
@@ -143,7 +149,8 @@ def gen_mixed_usage_records(
                 )
             ),
             "jobs": 28,
-            "nodes": 7
+            "nodes": 7,
+            "instances": 187
         },
         {
             "reporting_time": date_to_string(
@@ -153,7 +160,8 @@ def gen_mixed_usage_records(
                 ),
             ),
             "jobs": 63,
-            "nodes": 15
+            "nodes": 15,
+            "instances": 342
         }
     ]
 
@@ -311,6 +319,57 @@ def test_get_billable_usage_maximum(cba_config):
 
 
 @mark.config('config_testing_mixed.yaml')
+def test_get_tiered_dimensions(cba_config):
+    test_billable_usage = {
+        "instances": 222
+    }
+    test_tiers = {
+        "instances": ["instances_tier_1", "instances_tier_2"]
+    }
+
+    for metric, usage in test_billable_usage.items():
+        metric_dimensions = cba_config.usage_metrics[metric]['dimensions']
+        billed_dimensions = {}
+
+        get_tiered_dimensions(
+            usage_metric=metric,
+            usage=usage,
+            metric_dimensions=metric_dimensions,
+            billed_dimensions=billed_dimensions
+        )
+
+        cumulative_usage = 0
+        for dim in test_tiers[metric]:
+            assert dim in billed_dimensions
+            assert billed_dimensions[dim] >= 0
+            cumulative_usage += billed_dimensions[dim]
+        assert cumulative_usage == usage
+
+
+@mark.config('config_dimensions_gap.yaml')
+def test_get_tiered_dimensions_gap(cba_config):
+    test_billable_usage = {
+        "users": 20
+    }
+
+    for metric, usage in test_billable_usage.items():
+        metric_dimensions = cba_config.usage_metrics[metric]['dimensions']
+        billed_dimensions = {}
+
+        with raises(MissingTieredDimensionError) as e:
+            get_tiered_dimensions(
+                usage_metric=metric,
+                usage=usage,
+                metric_dimensions=metric_dimensions,
+                billed_dimensions=billed_dimensions
+            )
+
+        assert e.value.metric == metric
+        assert e.value.value == usage
+        assert 'Missing tiered dimension detected' in str(e.value)
+
+
+@mark.config('config_testing_mixed.yaml')
 def test_get_volume_dimensions(cba_config):
     test_billable_usage = {
         "jobs": 72,
@@ -356,6 +415,7 @@ def test_get_volume_dimensions_gap(cba_config):
 
         assert e.value.metric == metric
         assert e.value.value == usage
+        assert 'No matching volume dimension found' in str(e.value)
 
 
 @mark.config('config_dimensions_no_tail.yaml')
@@ -384,15 +444,18 @@ def test_get_volume_dimensions_no_tail(cba_config):
 def test_get_billing_dimensions(cba_config):
     test_billable_usage = {
         "jobs": 72,
-        "nodes": 7
-    }
-    test_tiers = {
-        "jobs": "jobs_tier_3",
-        "nodes": "nodes_tier_2"
+        "nodes": 7,
+        "instances": 222,
+        "threads": 10001,
+        "zeroes": 0
     }
     test_billed_dimensions = {
-        test_tiers["jobs"]: test_billable_usage["jobs"],
-        test_tiers["nodes"]: test_billable_usage["nodes"]
+        "jobs_tier_3": 72,
+        "nodes_tier_2": 7,
+        "instances_tier_1": 100,
+        "instances_tier_2": 122,
+        "threads_tier_1": 10001,
+        "zeroes_tier_1": 0,
     }
 
     billed_dimensions = get_billing_dimensions(
@@ -401,6 +464,26 @@ def test_get_billing_dimensions(cba_config):
     )
 
     assert billed_dimensions == test_billed_dimensions
+
+
+@mark.config('config_invalid_consumption.yaml')
+def test_get_billing_dimensions_invalid_consumption(cba_config):
+    metric = 'managed_node_count'
+    cons_rept = cba_config.usage_metrics[metric]['consumption_reporting']
+    test_billable_usage = {
+        metric: 72
+    }
+
+    with raises(ConsumptionReportingInvalidError) as e:
+        get_billing_dimensions(
+            config=cba_config,
+            billable_usage=test_billable_usage
+        )
+
+    exc_str = str(e.value)
+    assert "Invalid consumption reporting type" in exc_str
+    assert f"'{cons_rept}'" in exc_str
+    assert f"'{metric}'" in exc_str
 
 
 @mark.config('config_testing_mixed.yaml')
@@ -575,6 +658,18 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
                 'error': 'Simulating failed metering operation'
             },
             'nodes_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            },
+            'instances_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            },
+            'threads_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            },
+            'zeroes_tier_1': {
                 'status': 'failed',
                 'error': 'Simulating failed metering operation'
             }

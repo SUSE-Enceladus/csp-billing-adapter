@@ -5,6 +5,7 @@ reporting_api_is_cumulative: true
 reporting_interval: 3600
 usage_metrics:
   jobs:
+    # test metric with average aggregation, volume reporting
     consumption_reporting: volume
     dimensions:
     - dimension: jobs_tier_1
@@ -18,6 +19,7 @@ usage_metrics:
     min_consumption: 5
     usage_aggregation: average
   nodes:
+    # test metric with max aggregation, volume reporting
     consumption_reporting: volume
     dimensions:
     - dimension: nodes_tier_1
@@ -29,5 +31,34 @@ usage_metrics:
     - dimension: nodes_tier_3
       min: 16
     min_consumption: 2
+    usage_aggregation: maximum
+  instances:
+    # test metric with max aggregation, tiered reporting
+    consumption_reporting: tiered
+    dimensions:
+    - dimension: instances_tier_1
+      max: 100
+      min: 0
+    - dimension: instances_tier_2
+      max: 250
+      min: 101
+    - dimension: instances_tier_3
+      min: 251
+    min_consumption: 2
+    usage_aggregation: maximum
+  threads:
+    # test metric with max aggregation, tiered reporting, single
+    # dimension with no range details
+    consumption_reporting: tiered
+    dimensions:
+    - dimension: threads_tier_1
+    usage_aggregation: maximum
+  zeroes:
+    # test metric with max aggregation, tiered reporting, single
+    # dimension with min of 0, no max
+    consumption_reporting: tiered
+    dimensions:
+    - dimension: zeroes_tier_1
+      min: 0
     usage_aggregation: maximum
 version: 1.1.1
