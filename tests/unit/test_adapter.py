@@ -302,7 +302,7 @@ def test_event_loop_handler(
     assert cache['usage_records'] == []
     assert cache['last_bill'] != {}
     assert 'dimensions' in cache['last_bill']
-    assert 'record_ids' in cache['last_bill']
+    assert 'billing_status' in cache['last_bill']
     assert 'metering_time' in cache['last_bill']
 
     # The csp_config should now contain usage and last_billed
@@ -345,7 +345,7 @@ def test_event_loop_handler(
     assert len(cache['usage_records']) == 1
     assert cache['last_bill'] != {}
     assert 'dimensions' in cache['last_bill']
-    assert 'record_ids' in cache['last_bill']
+    assert 'billing_status' in cache['last_bill']
     assert 'metering_time' in cache['last_bill']
 
     # An error should have been added to the errors list in the

@@ -34,7 +34,8 @@ from csp_billing_adapter.bill_utils import (
     get_billing_dimensions,
     get_max_usage,
     get_volume_dimensions,
-    process_metering
+    process_metering,
+    get_errors
 )
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.csp_cache import (
@@ -403,6 +404,35 @@ def test_get_billing_dimensions(cba_config):
 
 
 @mark.config('config_testing_mixed.yaml')
+def test_get_billing_dimensions_partial(cba_config):
+    test_billable_usage = {
+        "jobs": 72,
+        "nodes": 7
+    }
+    test_tiers = {
+        "jobs": "jobs_tier_3",
+        "nodes": "nodes_tier_2"
+    }
+    test_billed_dimensions = {
+        test_tiers["nodes"]: test_billable_usage["nodes"]
+    }
+    billing_status = {
+        'jobs': {
+            'status': 'submitted',
+            'record_id': '1234567890'
+        }
+    }
+
+    billed_dimensions = get_billing_dimensions(
+        config=cba_config,
+        billable_usage=test_billable_usage,
+        billing_status=billing_status
+    )
+
+    assert billed_dimensions == test_billed_dimensions
+
+
+@mark.config('config_testing_mixed.yaml')
 @mock.patch('csp_billing_adapter.utils.time.sleep')
 def test_process_metering(mock_sleep, cba_pm, cba_config):
     # initialise the cache
@@ -501,7 +531,7 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
 
     with mock.patch(
         'csp_billing_adapter.local_csp.randrange',
-        return_value=4  # meter_billing will fail
+        return_value=4  # meter_billing will hard fail
     ):
         last_bill = copy.deepcopy(test_cache['last_bill'])
         usage_records = copy.deepcopy(test_cache['usage_records'])
@@ -517,6 +547,38 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
 
         assert test_cache["usage_records"] == usage_records
         assert test_cache["last_bill"] == last_bill
+
+        assert test_csp_config['billing_api_access_ok'] is False
+        assert test_csp_config['errors'] != []
+
+    with mock.patch(
+        'csp_billing_adapter.local_csp.randrange',
+        return_value=14  # meter_billing will soft fail
+    ):
+        last_bill = copy.deepcopy(test_cache['last_bill'])
+        usage_records = copy.deepcopy(test_cache['usage_records'])
+
+        # verify that a failed meter_billing() is handled correctly
+        process_metering(
+            hook=cba_pm.hook,
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config
+        )
+
+        assert test_cache["usage_records"] == usage_records
+        assert test_cache["last_bill"] == last_bill
+        assert test_cache["billing_status"] == {
+            'jobs_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            },
+            'nodes_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            }
+        }
 
         assert test_csp_config['billing_api_access_ok'] is False
         assert test_csp_config['errors'] != []
@@ -597,3 +659,21 @@ def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
 
         assert test_csp_config['billing_api_access_ok'] is False
         assert test_csp_config['errors'] != []
+
+
+def test_get_errors():
+    billing_status = {
+        'dim_1': {
+            'status': 'submitted',
+            'record_id': '123456890'
+        },
+        'dim_2': {
+            'status': 'failed',
+            'error': 'Failed metering!'
+        }
+    }
+
+    errors = get_errors(billing_status)
+
+    assert len(errors) == 1
+    assert errors[0] == 'Failed metering!'
