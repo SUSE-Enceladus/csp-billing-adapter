@@ -460,6 +460,20 @@ def get_errors(status: dict) -> list:
     return errors
 
 
+def create_billing_status(record_id: str, dimension: str) -> dict:
+    """
+    Returns a billing status dictionary from the provided input.
+    """
+    billing_status = {
+        dimension: {
+            'record_id': record_id,
+            'status': 'submitted'
+        }
+    }
+
+    return billing_status
+
+
 def process_metering(
     hook,
     config: Config,
@@ -573,7 +587,16 @@ def process_metering(
         csp_config['errors'].append(str(error))
         csp_config['billing_api_access_ok'] = False
     else:
+        if isinstance(billing_status, str):
+            # If billing status is a string it is the record id
+            # and we can assume that only one dimension was billed.
+            billing_status = create_billing_status(
+                record_id=billing_status,
+                dimension=next(iter(billed_dimensions))
+            )
+
         errors = get_errors(billing_status)
+
         if errors:
             for error in errors:
                 log.exception(error)

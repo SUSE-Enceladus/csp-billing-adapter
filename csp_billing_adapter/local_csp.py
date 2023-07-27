@@ -56,6 +56,9 @@ def meter_billing(
                 'error': 'Simulating failed metering operation',
                 'status': 'failed'
             }
+    elif seed == 24:
+        log.info('Simulating legacy return type')
+        status = str(uuid.uuid4().hex)
     else:
         for dimension, quantity in dimensions.items():
             status[dimension] = {

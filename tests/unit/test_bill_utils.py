@@ -36,7 +36,8 @@ from csp_billing_adapter.bill_utils import (
     get_tiered_dimensions,
     get_volume_dimensions,
     process_metering,
-    get_errors
+    get_errors,
+    create_billing_status
 )
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.csp_cache import (
@@ -772,3 +773,66 @@ def test_get_errors():
 
     assert len(errors) == 1
     assert errors[0] == 'Failed metering!'
+
+
+def test_create_billing_status():
+    result = create_billing_status('123456789', 'dim_1')
+    assert result == {
+        'dim_1': {
+            'status': 'submitted',
+            'record_id': '123456789'
+        }
+    }
+
+
+@mark.config('config_testing_mixed.yaml')
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_process_metering_legacy_return(mock_sleep, cba_pm, cba_config):
+    # initialise the cache
+    create_cache(
+        hook=cba_pm.hook,
+        config=cba_config
+    )
+    now = get_now()
+
+    test_cache = cba_pm.hook.get_cache(config=cba_config)
+
+    # generate test usage records for testing purposes,
+    # including an extra entry on either side of the
+    # target billing period.
+    test_usage_data = gen_mixed_usage_records(
+        string_to_date(test_cache['next_bill_time']),
+        cba_config,
+        billing_period_only=True
+    )
+
+    # add generated usage records to cache
+    for record in test_usage_data:
+        add_usage_record(
+            record=record,
+            cache=test_cache
+        )
+
+    account_info = {'customer': 'data'}
+    test_csp_config = create_csp_config(cba_config, account_info)
+
+    with mock.patch(
+        'csp_billing_adapter.local_csp.randrange',
+        return_value=24  # meter_billing will succeed
+    ):
+        # Perform a real billing update operation with legacy return type.
+        # String return of record id should be converted to billing_status
+        # dictionary.
+        process_metering(
+            hook=cba_pm.hook,
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config
+        )
+
+        assert 'jobs_tier_2' in test_cache['last_bill']['billing_status']
+        status = test_cache['last_bill']['billing_status']['jobs_tier_2'].get(
+            'status'
+        )
+        assert status == 'submitted'
