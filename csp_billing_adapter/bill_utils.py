@@ -460,14 +460,18 @@ def get_errors(status: dict) -> list:
     return errors
 
 
-def create_billing_status(record_id: str, dimension: str) -> dict:
+def create_billing_status(
+    record_id: str,
+    dimension: str,
+    status: str = 'submitted'
+) -> dict:
     """
     Returns a billing status dictionary from the provided input.
     """
     billing_status = {
         dimension: {
             'record_id': record_id,
-            'status': 'submitted'
+            'status': status
         }
     }
 
