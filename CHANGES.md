@@ -1,3 +1,9 @@
+v0.4.0 (2023-08-01)
+-------------------
+
+- Handle status dictionary from meter billing and legacy string response.
+- Implement supported for tiered consumption reporting.
+
 v0.3.1 (2023-07-03)
 -------------------
 
