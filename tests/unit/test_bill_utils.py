@@ -33,8 +33,11 @@ from csp_billing_adapter.bill_utils import (
     get_billable_usage,
     get_billing_dimensions,
     get_max_usage,
+    get_tiered_dimensions,
     get_volume_dimensions,
-    process_metering
+    process_metering,
+    get_errors,
+    create_billing_status
 )
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.csp_cache import (
@@ -43,6 +46,8 @@ from csp_billing_adapter.csp_cache import (
 )
 from csp_billing_adapter.csp_config import create_csp_config
 from csp_billing_adapter.exceptions import (
+    ConsumptionReportingInvalidError,
+    MissingTieredDimensionError,
     NoMatchingVolumeDimensionError
 )
 from csp_billing_adapter.utils import (
@@ -112,7 +117,8 @@ def gen_mixed_usage_records(
                 )
             ),
             "jobs": 44,
-            "nodes": 9
+            "nodes": 9,
+            "instances": 222
         },
         {
             "reporting_time": date_to_string(
@@ -122,7 +128,8 @@ def gen_mixed_usage_records(
                 )
             ),
             "jobs": 15,
-            "nodes": 4
+            "nodes": 4,
+            "instances": 123
         },
         {
             "reporting_time": date_to_string(
@@ -132,7 +139,8 @@ def gen_mixed_usage_records(
                 )
             ),
             "jobs": 23,
-            "nodes": 6
+            "nodes": 6,
+            "instances": 159
         },
         {
             "reporting_time": date_to_string(
@@ -142,7 +150,8 @@ def gen_mixed_usage_records(
                 )
             ),
             "jobs": 28,
-            "nodes": 7
+            "nodes": 7,
+            "instances": 187
         },
         {
             "reporting_time": date_to_string(
@@ -152,7 +161,8 @@ def gen_mixed_usage_records(
                 ),
             ),
             "jobs": 63,
-            "nodes": 15
+            "nodes": 15,
+            "instances": 342
         }
     ]
 
@@ -310,6 +320,57 @@ def test_get_billable_usage_maximum(cba_config):
 
 
 @mark.config('config_testing_mixed.yaml')
+def test_get_tiered_dimensions(cba_config):
+    test_billable_usage = {
+        "instances": 222
+    }
+    test_tiers = {
+        "instances": ["instances_tier_1", "instances_tier_2"]
+    }
+
+    for metric, usage in test_billable_usage.items():
+        metric_dimensions = cba_config.usage_metrics[metric]['dimensions']
+        billed_dimensions = {}
+
+        get_tiered_dimensions(
+            usage_metric=metric,
+            usage=usage,
+            metric_dimensions=metric_dimensions,
+            billed_dimensions=billed_dimensions
+        )
+
+        cumulative_usage = 0
+        for dim in test_tiers[metric]:
+            assert dim in billed_dimensions
+            assert billed_dimensions[dim] >= 0
+            cumulative_usage += billed_dimensions[dim]
+        assert cumulative_usage == usage
+
+
+@mark.config('config_dimensions_gap.yaml')
+def test_get_tiered_dimensions_gap(cba_config):
+    test_billable_usage = {
+        "users": 20
+    }
+
+    for metric, usage in test_billable_usage.items():
+        metric_dimensions = cba_config.usage_metrics[metric]['dimensions']
+        billed_dimensions = {}
+
+        with raises(MissingTieredDimensionError) as e:
+            get_tiered_dimensions(
+                usage_metric=metric,
+                usage=usage,
+                metric_dimensions=metric_dimensions,
+                billed_dimensions=billed_dimensions
+            )
+
+        assert e.value.metric == metric
+        assert e.value.value == usage
+        assert 'Missing tiered dimension detected' in str(e.value)
+
+
+@mark.config('config_testing_mixed.yaml')
 def test_get_volume_dimensions(cba_config):
     test_billable_usage = {
         "jobs": 72,
@@ -355,6 +416,7 @@ def test_get_volume_dimensions_gap(cba_config):
 
         assert e.value.metric == metric
         assert e.value.value == usage
+        assert 'No matching volume dimension found' in str(e.value)
 
 
 @mark.config('config_dimensions_no_tail.yaml')
@@ -383,6 +445,52 @@ def test_get_volume_dimensions_no_tail(cba_config):
 def test_get_billing_dimensions(cba_config):
     test_billable_usage = {
         "jobs": 72,
+        "nodes": 7,
+        "instances": 222,
+        "threads": 10001,
+        "zeroes": 0
+    }
+    test_billed_dimensions = {
+        "jobs_tier_3": 72,
+        "nodes_tier_2": 7,
+        "instances_tier_1": 100,
+        "instances_tier_2": 122,
+        "threads_tier_1": 10001,
+        "zeroes_tier_1": 0,
+    }
+
+    billed_dimensions = get_billing_dimensions(
+        config=cba_config,
+        billable_usage=test_billable_usage
+    )
+
+    assert billed_dimensions == test_billed_dimensions
+
+
+@mark.config('config_invalid_consumption.yaml')
+def test_get_billing_dimensions_invalid_consumption(cba_config):
+    metric = 'managed_node_count'
+    cons_rept = cba_config.usage_metrics[metric]['consumption_reporting']
+    test_billable_usage = {
+        metric: 72
+    }
+
+    with raises(ConsumptionReportingInvalidError) as e:
+        get_billing_dimensions(
+            config=cba_config,
+            billable_usage=test_billable_usage
+        )
+
+    exc_str = str(e.value)
+    assert "Invalid consumption reporting type" in exc_str
+    assert f"'{cons_rept}'" in exc_str
+    assert f"'{metric}'" in exc_str
+
+
+@mark.config('config_testing_mixed.yaml')
+def test_get_billing_dimensions_partial(cba_config):
+    test_billable_usage = {
+        "jobs": 72,
         "nodes": 7
     }
     test_tiers = {
@@ -390,13 +498,19 @@ def test_get_billing_dimensions(cba_config):
         "nodes": "nodes_tier_2"
     }
     test_billed_dimensions = {
-        test_tiers["jobs"]: test_billable_usage["jobs"],
         test_tiers["nodes"]: test_billable_usage["nodes"]
+    }
+    billing_status = {
+        'jobs': {
+            'status': 'submitted',
+            'record_id': '1234567890'
+        }
     }
 
     billed_dimensions = get_billing_dimensions(
         config=cba_config,
-        billable_usage=test_billable_usage
+        billable_usage=test_billable_usage,
+        billing_status=billing_status
     )
 
     assert billed_dimensions == test_billed_dimensions
@@ -501,7 +615,7 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
 
     with mock.patch(
         'csp_billing_adapter.local_csp.randrange',
-        return_value=4  # meter_billing will fail
+        return_value=4  # meter_billing will hard fail
     ):
         last_bill = copy.deepcopy(test_cache['last_bill'])
         usage_records = copy.deepcopy(test_cache['usage_records'])
@@ -517,6 +631,50 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
 
         assert test_cache["usage_records"] == usage_records
         assert test_cache["last_bill"] == last_bill
+
+        assert test_csp_config['billing_api_access_ok'] is False
+        assert test_csp_config['errors'] != []
+
+    with mock.patch(
+        'csp_billing_adapter.local_csp.randrange',
+        return_value=14  # meter_billing will soft fail
+    ):
+        last_bill = copy.deepcopy(test_cache['last_bill'])
+        usage_records = copy.deepcopy(test_cache['usage_records'])
+
+        # verify that a failed meter_billing() is handled correctly
+        process_metering(
+            hook=cba_pm.hook,
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config
+        )
+
+        assert test_cache["usage_records"] == usage_records
+        assert test_cache["last_bill"] == last_bill
+        assert test_cache["billing_status"] == {
+            'jobs_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            },
+            'nodes_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            },
+            'instances_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            },
+            'threads_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            },
+            'zeroes_tier_1': {
+                'status': 'failed',
+                'error': 'Simulating failed metering operation'
+            }
+        }
 
         assert test_csp_config['billing_api_access_ok'] is False
         assert test_csp_config['errors'] != []
@@ -597,3 +755,84 @@ def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
 
         assert test_csp_config['billing_api_access_ok'] is False
         assert test_csp_config['errors'] != []
+
+
+def test_get_errors():
+    billing_status = {
+        'dim_1': {
+            'status': 'submitted',
+            'record_id': '123456890'
+        },
+        'dim_2': {
+            'status': 'failed',
+            'error': 'Failed metering!'
+        }
+    }
+
+    errors = get_errors(billing_status)
+
+    assert len(errors) == 1
+    assert errors[0] == 'Failed metering!'
+
+
+def test_create_billing_status():
+    result = create_billing_status('123456789', 'dim_1')
+    assert result == {
+        'dim_1': {
+            'status': 'submitted',
+            'record_id': '123456789'
+        }
+    }
+
+
+@mark.config('config_testing_mixed.yaml')
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_process_metering_legacy_return(mock_sleep, cba_pm, cba_config):
+    # initialise the cache
+    create_cache(
+        hook=cba_pm.hook,
+        config=cba_config
+    )
+    now = get_now()
+
+    test_cache = cba_pm.hook.get_cache(config=cba_config)
+
+    # generate test usage records for testing purposes,
+    # including an extra entry on either side of the
+    # target billing period.
+    test_usage_data = gen_mixed_usage_records(
+        string_to_date(test_cache['next_bill_time']),
+        cba_config,
+        billing_period_only=True
+    )
+
+    # add generated usage records to cache
+    for record in test_usage_data:
+        add_usage_record(
+            record=record,
+            cache=test_cache
+        )
+
+    account_info = {'customer': 'data'}
+    test_csp_config = create_csp_config(cba_config, account_info)
+
+    with mock.patch(
+        'csp_billing_adapter.local_csp.randrange',
+        return_value=24  # meter_billing will succeed
+    ):
+        # Perform a real billing update operation with legacy return type.
+        # String return of record id should be converted to billing_status
+        # dictionary.
+        process_metering(
+            hook=cba_pm.hook,
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config
+        )
+
+        assert 'jobs_tier_2' in test_cache['last_bill']['billing_status']
+        status = test_cache['last_bill']['billing_status']['jobs_tier_2'].get(
+            'status'
+        )
+        assert status == 'submitted'

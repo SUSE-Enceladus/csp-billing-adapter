@@ -40,16 +40,33 @@ def meter_billing(
     dimensions: dict,
     timestamp: datetime,
     dry_run: bool
-) -> str:
+) -> dict:
     """Simulate a CSP metering operation with a 5% chance of failure."""
     log.info('Mock CSP received metering of: %s', dimensions)
-    seed = randrange(20)
+    seed = randrange(40)
+    status = {}
 
     if seed == 4:
         log.warning("Simulating failed metering operation")
         raise Exception('Unable to submit meter usage. Payment not billed!')
+    elif seed == 14:
+        log.warning('Simulating failed metering operation')
+        for dimension, quantity in dimensions.items():
+            status[dimension] = {
+                'error': 'Simulating failed metering operation',
+                'status': 'failed'
+            }
+    elif seed == 24:
+        log.info('Simulating legacy return type')
+        status = str(uuid.uuid4().hex)
     else:
-        return str(uuid.uuid4().hex)
+        for dimension, quantity in dimensions.items():
+            status[dimension] = {
+                'record_id': str(uuid.uuid4().hex),
+                'status': 'succeeded'
+            }
+
+    return status
 
 
 @csp_billing_adapter.hookimpl(trylast=True)

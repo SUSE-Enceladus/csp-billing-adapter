@@ -43,6 +43,29 @@ class NoMatchingVolumeDimensionError(CSPBillingAdapterException):
         return self.msg
 
 
+class MissingTieredDimensionError(CSPBillingAdapterException):
+    """
+    Exception raised when a tiered dimension is missing in the
+    config's usage_metrics settings, found when the sum of the
+    allocated usage quantities doesn't equal the usage value.
+
+    Attributes:
+        metric -- the name of the metric
+        value -- the value of the metric
+    """
+
+    def __init__(self, metric, value):
+        self.metric = metric
+        self.value = value
+        self.msg = (
+            'Missing tiered dimension detected for '
+            f'{self.metric!r}={self.value}'
+        )
+
+    def __str__(self):
+        return self.msg
+
+
 class FailedToSaveCSPConfigError(CSPBillingAdapterException):
     """Exception raised when csp_config save/update fails."""
 
@@ -53,3 +76,7 @@ class FailedToSaveCacheError(CSPBillingAdapterException):
 
 class CSPMetadataRetrievalError(CSPBillingAdapterException):
     """Exception raised for issues with the retrieval of CSP metadata."""
+
+
+class ConsumptionReportingInvalidError(CSPBillingAdapterException):
+    """Exception raised when consumption reporting type is invalid."""

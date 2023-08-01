@@ -26,6 +26,8 @@ import math
 
 from csp_billing_adapter.csp_cache import cache_meter_record
 from csp_billing_adapter.exceptions import (
+    ConsumptionReportingInvalidError,
+    MissingTieredDimensionError,
     NoMatchingVolumeDimensionError
 )
 from csp_billing_adapter.utils import (
@@ -165,20 +167,20 @@ def get_volume_dimensions(
 ) -> None:
     """
     For the metric specified by 'usage_metric', with the given
-    'usage' value, determine the appropiate volume dimension tier
+    'usage' value, determine the appropiate volume dimension
     that corresponds to that usage level, in the 'metric_dimensions'
     hash, and update the 'billed_dimensions' hash with an entry
-    mapping that tier's name to the specified usage amount.
+    mapping that dimension's name to the specified usage amount.
 
     :param usage_metric: The metric being processed.
     :param usage: The calculated usage for the specified metric.
     :param metric_dimensions:
-        The hash specifying the volume dimension tiers for the
-        specified metric.
+        The hash specifying the volume dimensions for the usage
+        metric.
     :param billed_dimensions:
         The hash that will be updated with an entry mapping the
-        determined volume dimension tier's name to the specified
-        usage value.
+        determined volume dimension's name to the specified usage
+        value.
     """
     for dimension in metric_dimensions:
         if 'min' in dimension and usage < dimension['min']:
@@ -212,15 +214,98 @@ def get_volume_dimensions(
         )
 
 
+def get_tiered_dimensions(
+    usage_metric: str,
+    usage: int,
+    metric_dimensions: dict,
+    billed_dimensions: dict
+) -> None:
+    """
+    For the metric specified by 'usage_metric', with the given
+    'usage' value, determine the appropiate tiered dimensions
+    that correspond to that usage level, as specifed by the
+    'metric_dimensions' hash, and update the 'billed_dimensions'
+    hash with entries mapping those dimensions names to the
+    appropriate usage amounts.
+
+    Note that, unlike the volume dimensions case, where all usage
+    is reported under the single dimension into which the usage
+    level falls, in the case of tiered dimensions, the usage
+    amount is allocated in an effort to fill each dimension, with
+    the excess overflowing into the next dimension, meaning that
+    multiple dimensions can, potentially, be reported.
+
+    :param usage_metric: The metric being processed.
+    :param usage: The calculated usage for the specified metric.
+    :param metric_dimensions:
+        The hash specifying the tiered dimensions for the usage
+        metric.
+    :param billed_dimensions:
+        The hash that will be updated with an entry mapping the
+        determined tiered dimension names to the appropriate
+        usage values for that dimension.
+    """
+    unassigned_usage = usage
+    for dimension in metric_dimensions:
+        # handle a missing min, as well as allowing usage and min
+        # being 0 to generate a billing dimension entry with the
+        # appropriate dimension name and a value of 0.
+        if 'min' in dimension and usage < dimension['min']:
+            log.debug("Skipping as usage < min")
+            continue
+
+        # if configured min is not specified or 0, use 1 as the
+        # min value since our later range calculations are for
+        # inclusive range specifications.
+        dim_min = max(dimension.get('min', 0), 1)
+
+        # use the configured max or usage if none is specified
+        dim_max = dimension.get('max', usage)
+
+        # the usage value for this dimension is calculated by
+        # subtracting the dim_min from the lesser of usage or
+        # dim_max, and then add 1 because the range is inclusive
+        dim_usage = (min(usage, dim_max) - dim_min) + 1
+
+        billed_dimensions[dimension['dimension']] = dim_usage
+
+        # subtract assigned usage
+        unassigned_usage -= dim_usage
+
+        log.debug(
+            "Adding '%s'=%d to billing_dimensions",
+            dimension['dimension'],
+            dim_usage
+        )
+
+    # unassigned usage indicates that there is a missing tiered
+    # dimension specification in the config
+    if unassigned_usage:
+        log.error(
+            "Failed to find a matching dimension entry for %s=%d, "
+            "%d unassigned",
+            usage_metric,
+            usage,
+            unassigned_usage
+        )
+        raise MissingTieredDimensionError(
+            usage_metric,
+            usage
+        )
+
+
 def get_billing_dimensions(
     config: Config,
-    billable_usage: dict
+    billable_usage: dict,
+    billing_status: dict = None
 ) -> dict:
     """
     Construct a hash mapping each metric's appropriate billable
     dimension name to it's usage value in the 'billable_usage'
     hash, using the metric's dimension configuration settings
-    from the provided 'config'.
+    from the provided 'config'. If a status dictionary is provided
+    the previous metering attempt partially failed. Any metrics
+    that billed successfully will be skipped.
 
     :param config:
         The configuration specifying the metrics that need to be
@@ -228,10 +313,17 @@ def get_billing_dimensions(
     :param billable_usage:
         A hash mapping the usage metrics specific in the 'config' to
         their calculated usage values.
+    :param billing_status:
+        A hash mapping the previous metering attempt status and
+        record ids. If the previous metering attempt was successful
+        the hash will be empty.
     :return:
         A hash mapping each metric tier's name to it's associated
         usage value.
     """
+    if billing_status is None:
+        billing_status = {}
+
     billed_dimensions = {}
 
     log.debug(
@@ -239,25 +331,44 @@ def get_billing_dimensions(
         billable_usage
     )
 
+    # map consumption reporting type to appropriate handler routine
+    get_dimensions_handler = {
+        'tiered': get_tiered_dimensions,
+        'volume': get_volume_dimensions
+    }
+
     for usage_metric, usage in billable_usage.items():
+        if billing_status.get(usage_metric, {}).get('status') == 'submitted':
+            log.debug(
+                'Skipping %s. Metric already billed for the current cycle'
+            )
+            continue
+
         metric_config = config.usage_metrics[usage_metric]
         consumption_reporting = metric_config['consumption_reporting']
 
-        if consumption_reporting == 'volume':
-            log.debug(
-                "Determining volume dimensions for %s=%d",
-                usage_metric,
-                usage
+        log.debug(
+            "Determining %s dimensions for %s=%d",
+            consumption_reporting,
+            usage_metric,
+            usage
+        )
+
+        if consumption_reporting not in get_dimensions_handler:
+            raise ConsumptionReportingInvalidError(
+                "Invalid consumption reporting type "
+                f"'{consumption_reporting}' "
+                f"for usage metric '{usage_metric}'"
             )
-            get_volume_dimensions(
-                usage_metric,
-                usage,
-                metric_config['dimensions'],
-                billed_dimensions
-            )
-        else:
-            # Stubbed for different consumption reporting models in future
-            pass
+
+        # call the get_dimensions_handler routine matching the
+        # specified consumption reporting type.
+        get_dimensions_handler[consumption_reporting](
+            usage_metric,
+            usage,
+            metric_config['dimensions'],
+            billed_dimensions
+        )
 
     log.info(
         "Determined billable dimensions %s for usage %s",
@@ -331,6 +442,40 @@ def filter_usage_records_in_billing_period(
     log.debug("Filtered records: %s", filtered_records)
 
     return filtered_records
+
+
+def get_errors(status: dict) -> list:
+    """
+    Return a list of all error messages
+
+    Parse metering status dictionary for all error messages
+    and return a list. If none return an empty list.
+    """
+    errors = []
+
+    for dimension, data in status.items():
+        if 'error' in data:
+            errors.append(data['error'])
+
+    return errors
+
+
+def create_billing_status(
+    record_id: str,
+    dimension: str,
+    status: str = 'submitted'
+) -> dict:
+    """
+    Returns a billing status dictionary from the provided input.
+    """
+    billing_status = {
+        dimension: {
+            'record_id': record_id,
+            'status': status
+        }
+    }
+
+    return billing_status
 
 
 def process_metering(
@@ -421,7 +566,8 @@ def process_metering(
 
         billed_dimensions = get_billing_dimensions(
             config,
-            billable_usage
+            billable_usage,
+            cache.get('billing_status', {})
         )
 
         log.debug(
@@ -429,7 +575,7 @@ def process_metering(
             billed_dimensions
         )
 
-        record_id = retry_on_exception(
+        billing_status = retry_on_exception(
             functools.partial(
                 hook.meter_billing,
                 config=config,
@@ -445,9 +591,34 @@ def process_metering(
         csp_config['errors'].append(str(error))
         csp_config['billing_api_access_ok'] = False
     else:
+        if isinstance(billing_status, str):
+            # If billing status is a string it is the record id
+            # and we can assume that only one dimension was billed.
+            billing_status = create_billing_status(
+                record_id=billing_status,
+                dimension=next(iter(billed_dimensions))
+            )
+
+        errors = get_errors(billing_status)
+
+        if errors:
+            for error in errors:
+                log.exception(error)
+                csp_config['errors'].append(str(error))
+
+            csp_config['billing_api_access_ok'] = False
+            cache['billing_status'] = billing_status
+            return
+        else:
+            # clear any previous failed state
+            try:
+                del cache['billing_status']
+            except KeyError:
+                pass
+
         log.info(
-            "Metering submitted, record_id: %s",
-            record_id
+            "Metering submitted, billing status: %s",
+            billing_status
         )
 
         metering_time = date_to_string(now)
@@ -475,7 +646,7 @@ def process_metering(
 
             cache_meter_record(
                 cache,
-                record_id,
+                billing_status,
                 billed_dimensions,
                 metering_time
             )

@@ -31,7 +31,7 @@ def meter_billing(
     dimensions: dict,
     timestamp: datetime,
     dry_run: bool
-) -> str:
+) -> dict:
     """
     Process metering request against the CSP API.
 
