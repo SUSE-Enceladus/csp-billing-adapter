@@ -51,6 +51,7 @@ from csp_billing_adapter import (
     storage_hookspecs
 )
 
+LOGGER_NAME = 'CSPBillingAdapter'
 DEFAULT_CONFIG_PATH = '/etc/csp_billing_adapter/config.yaml'
 
 config_path = os.environ.get('CSP_ADAPTER_CONFIG_FILE') or DEFAULT_CONFIG_PATH
@@ -71,17 +72,17 @@ def get_plugin_manager() -> pluggy.PluginManager:
     return pm
 
 
-def setup_logging(hook) -> logging.Logger:
+def setup_logging() -> logging.Logger:
     """Setup basic logging"""
     logging.basicConfig(
         format='%(asctime)s.%(msecs)03d|%(levelname)s|%(name)s|%(message)s',
         datefmt='%Y-%m-%dT%H:%M:%S'
     )
-    log = logging.getLogger('CSPBillingAdapter')
+    log = logging.getLogger(LOGGER_NAME)
     log.setLevel(logging.INFO)
     logging.Formatter.converter = time.gmtime
 
-    log.info("CSPBillingAdapter logging setup complete")
+    log.info(f"{LOGGER_NAME} logging setup complete")
     return log
 
 
@@ -102,6 +103,17 @@ def get_config(
     log.info("Config loaded: %s", config)
 
     return config
+
+
+def update_logger_from_config(config: Config, log: logging.Logger):
+    """Update the logger based on configuration file options."""
+    current_level = log.getEffectiveLevel()
+    log.setLevel(config.get('logging', {}).get('level', current_level))
+
+    if current_level != log.getEffectiveLevel():
+        log.info(
+            f"{LOGGER_NAME} logging level updated to {log.getEffectiveLevel()}"
+        )
 
 
 def initial_adapter_setup(
@@ -369,13 +381,15 @@ def main() -> None:
     pm = get_plugin_manager()
 
     try:
-        log = setup_logging(pm.hook)
+        log = setup_logging()
 
         config = get_config(
             config_path,
             pm.hook,
             log
         )
+
+        update_logger_from_config(config, log)
 
         cache, csp_config = initial_adapter_setup(pm.hook, config, log)
 
