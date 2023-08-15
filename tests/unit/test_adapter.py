@@ -32,7 +32,8 @@ from csp_billing_adapter.adapter import (
     initial_adapter_setup,
     main as cba_main,
     setup_logging,
-    metering_test
+    metering_test,
+    update_logger_from_config
 )
 from csp_billing_adapter.exceptions import (
     CSPBillingAdapterException,
@@ -69,11 +70,24 @@ def test_get_plugin_manager(cba_config):
     assert pm.hook.get_csp_name(config=cba_config) == "local"
 
 
-def test_setup_logging(cba_pm):
+def test_setup_logging():
     """Verify logging is being setup correctly."""
-    log = setup_logging(cba_pm.hook)
-
+    log = setup_logging()
     assert log.name == "CSPBillingAdapter"
+
+
+def test_update_logger_from_config():
+    """Verify logging is updated correctly."""
+    log = setup_logging()
+    update_logger_from_config({'logging': {'level': 'WARN'}}, log)
+
+    assert log.getEffectiveLevel() == 30
+
+    log = setup_logging()
+    expected_level = log.getEffectiveLevel()
+    update_logger_from_config({}, log)
+
+    assert log.getEffectiveLevel() == expected_level
 
 
 def test_get_config(cba_pm, cba_config, cba_config_path, cba_log):
