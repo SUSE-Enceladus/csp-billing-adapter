@@ -49,9 +49,9 @@ Configurable isolation layer that provides the information needed
 to report billing information to the CSP API.
 
 %package service
-Summary:        The unit file for csp billing adapter 
+Summary:        The unit file for csp billing adapter
 Group:          System/Management
-Requires:       csp-billing-adapter = %{version}
+Requires:       python3-csp-billing-adapter = %{version}
 # pkg-config is needed to find correct systemd unit dir
 BuildRequires:  pkg-config
 BuildRequires:  pkgconfig(systemd)
