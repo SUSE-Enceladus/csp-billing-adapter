@@ -95,7 +95,7 @@ def add_usage_record(record: dict, cache: dict) -> None:
     """
 
     if not cache.get('usage_records', []):
-        log.info('Initial usage record: %s', record)
+        log.info('Appending usage record: %s', record)
         cache['usage_records'] = [record]
     else:
         last_record_time = cache['usage_records'][-1]['reporting_time']
