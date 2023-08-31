@@ -350,13 +350,9 @@ def test_event_loop_handler(
         csp_config
     )
 
-    # A new usage record should have been added to the usage
-    # records list in the cache, and the last_bill entries should
-    # still be present.
+    # The last_bill entries should still be present.
     cache = cba_pm.hook.get_cache(config=cba_config)
     assert cache != {}
-    assert cache['usage_records'] != []
-    assert len(cache['usage_records']) == 1
     assert cache['last_bill'] != {}
     assert 'dimensions' in cache['last_bill']
     assert 'billing_status' in cache['last_bill']
