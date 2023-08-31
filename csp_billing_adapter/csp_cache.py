@@ -88,7 +88,7 @@ def record_valid(
     reporting_time: str,
     next_bill_time: str,
     billing_interval: str
-):
+) -> bool:
     """
     Return True if the record reporting time is after the range start
 
