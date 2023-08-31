@@ -198,9 +198,12 @@ def initial_adapter_setup(
 
     if not cache:
         cache = create_cache(hook, config)
+        initial_deploy = True
+    else:
+        initial_deploy = False
 
     log.info("Adapter setup complete")
-    return cache, csp_config
+    return cache, csp_config, initial_deploy
 
 
 def event_loop_handler(
@@ -391,11 +394,16 @@ def main() -> None:
 
         update_logger_from_config(config, log)
 
-        cache, csp_config = initial_adapter_setup(pm.hook, config, log)
+        cache, csp_config, initial_deploy = initial_adapter_setup(
+            pm.hook,
+            config,
+            log
+        )
 
         metering_test(pm.hook, config, log, csp_config)
 
-        time.sleep(config.query_interval)  # wait 1 cycle for usage data
+        if initial_deploy:
+            time.sleep(config.query_interval)  # wait 1 cycle for usage data
 
         while True:
             start = get_now()

@@ -107,11 +107,13 @@ def test_initial_adapter_setup_no_errors(
     Verify that the initial_adapter_setup() works correctly using
     in-memory plugins.
     """
-    setup_cache, setup_csp_config = initial_adapter_setup(
+    setup_cache, setup_csp_config, initial_deploy = initial_adapter_setup(
         cba_pm.hook,
         cba_config,
         cba_log
     )
+
+    assert initial_deploy
     assert setup_cache != {}
     assert setup_csp_config != {}
 
@@ -120,6 +122,13 @@ def test_initial_adapter_setup_no_errors(
 
     csp_config = cba_pm.hook.get_csp_config(config=cba_config)
     assert csp_config == setup_csp_config
+
+    setup_cache, setup_csp_config, initial_deploy = initial_adapter_setup(
+        cba_pm.hook,
+        cba_config,
+        cba_log
+    )
+    assert not initial_deploy
 
 
 @mock.patch('csp_billing_adapter.adapter.time.sleep')
@@ -176,7 +185,7 @@ def test_initial_adapter_setup_cache_errors(
         'get_cache',
         side_effect=error
     ):
-        cache, csp_config, = initial_adapter_setup(
+        cache, csp_config, initial_deploy = initial_adapter_setup(
             cba_pm.hook,
             cba_config,
             cba_log
@@ -585,7 +594,7 @@ def test_metering_test_attrubute_error_handling(
         "attribute 'usage_metrics'"
     )
 
-    cache, csp_config = initial_adapter_setup(
+    cache, csp_config, initial_deploy = initial_adapter_setup(
         cba_pm.hook,
         cba_config,
         cba_log
@@ -617,7 +626,7 @@ def test_metering_test_key_error_handling(
         "'dimensions'"
     )
 
-    cache, csp_config = initial_adapter_setup(
+    cache, csp_config, initial_deploy = initial_adapter_setup(
         cba_pm.hook,
         cba_config,
         cba_log
@@ -651,7 +660,7 @@ def test_metering_test_meter_billing_failure(
         f"{str(err_exc)}"
     )
 
-    cache, csp_config = initial_adapter_setup(
+    cache, csp_config, initial_deploy = initial_adapter_setup(
         cba_pm.hook,
         cba_config,
         cba_log
@@ -695,7 +704,7 @@ def test_metering_test_meter_billing_and_update_csp_config_failure(
         f"{str(err_exc)}"
     )
 
-    cache, csp_config = initial_adapter_setup(
+    cache, csp_config, initial_deploy = initial_adapter_setup(
         cba_pm.hook,
         cba_config,
         cba_log
