@@ -123,6 +123,13 @@ def test_initial_adapter_setup_no_errors(
     csp_config = cba_pm.hook.get_csp_config(config=cba_config)
     assert csp_config == setup_csp_config
 
+    setup_cache, setup_csp_config, initial_deploy = initial_adapter_setup(
+        cba_pm.hook,
+        cba_config,
+        cba_log
+    )
+    assert not initial_deploy
+
 
 @mock.patch('csp_billing_adapter.adapter.time.sleep')
 def test_initial_adapter_setup_csp_config_errors(
