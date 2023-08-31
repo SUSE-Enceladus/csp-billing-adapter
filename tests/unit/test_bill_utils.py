@@ -544,11 +544,15 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
         billing_period_only=False
     )
 
+    # add early record
+    test_cache['usage_records'] = [test_usage_data[0]]
+
     # add generated usage records to cache
-    for record in test_usage_data:
+    for record in test_usage_data[1:]:
         add_usage_record(
             record=record,
-            cache=test_cache
+            cache=test_cache,
+            billing_interval=cba_config.billing_interval
         )
 
     assert test_cache["usage_records"] == test_usage_data
@@ -715,7 +719,8 @@ def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
     for record in test_usage_data:
         add_usage_record(
             record=record,
-            cache=test_cache
+            cache=test_cache,
+            billing_interval=cba_config.billing_interval
         )
 
     assert test_cache["usage_records"] == test_usage_data
@@ -810,7 +815,8 @@ def test_process_metering_legacy_return(mock_sleep, cba_pm, cba_config):
     for record in test_usage_data:
         add_usage_record(
             record=record,
-            cache=test_cache
+            cache=test_cache,
+            billing_interval=cba_config.billing_interval
         )
 
     account_info = {'customer': 'data'}

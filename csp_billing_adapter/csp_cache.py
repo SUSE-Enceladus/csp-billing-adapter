@@ -32,7 +32,9 @@ from csp_billing_adapter.utils import (
     date_to_string,
     get_next_bill_time,
     get_date_delta,
-    retry_on_exception
+    retry_on_exception,
+    get_prev_bill_time,
+    string_to_date
 )
 
 log = logging.getLogger('CSPBillingAdapter')
@@ -82,7 +84,37 @@ def create_cache(hook, config: Config) -> dict:
     return cache
 
 
-def add_usage_record(record: dict, cache: dict) -> None:
+def record_valid(
+    reporting_time: str,
+    next_bill_time: str,
+    billing_interval: str
+) -> bool:
+    """
+    Return True if the record reporting time is after the range start
+
+    This prevents any record that is older than the current billing
+    period from ending up in cache.
+
+    :param reporting_time:
+        The time the record was reported from product.
+    :param next_bill_time:
+        The end of the current billing period.
+    :param billing_interval:
+        The cadence for metering billing.
+    """
+    range_end = string_to_date(next_bill_time)
+    range_start = get_prev_bill_time(
+        range_end,
+        billing_interval
+    )
+    return range_start <= string_to_date(reporting_time)
+
+
+def add_usage_record(
+    record: dict,
+    cache: dict,
+    billing_interval: str
+) -> None:
     """
     Add a new 'record' to the cache data store's usage_records list,
     avoiding duplicate records by ensuring that the new record's
@@ -92,7 +124,17 @@ def add_usage_record(record: dict, cache: dict) -> None:
         The record to add to the cache.
     :param cache:
         Cache to add the record to.
+    :param billing_interval:
+        The cadence for meter billing.
     """
+    valid = record_valid(
+        record['reporting_time'],
+        cache['next_bill_time'],
+        billing_interval
+    )
+    if not valid:
+        log.info('Skipping invalid usage record: %s', record)
+        return
 
     if not cache.get('usage_records', []):
         log.info('Appending usage record: %s', record)

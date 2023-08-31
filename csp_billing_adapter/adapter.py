@@ -234,7 +234,7 @@ def event_loop_handler(
         csp_config['errors'].append(f'Usage data retrieval failed: {exc}')
 
     if usage:
-        add_usage_record(usage, cache)
+        add_usage_record(usage, cache, config.billing_interval)
         csp_config['base_product'] = usage.get('base_product', '')
 
     log.debug(

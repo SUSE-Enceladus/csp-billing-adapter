@@ -26,7 +26,8 @@ from pytest import raises
 from csp_billing_adapter.csp_cache import (
     add_usage_record,
     cache_meter_record,
-    create_cache
+    create_cache,
+    record_valid
 )
 from csp_billing_adapter.exceptions import (
     FailedToSaveCacheError
@@ -83,8 +84,11 @@ def test_create_cache_exception_handling(
 
 
 def test_add_usage_record(cba_pm, cba_config):
-    test_time1 = datetime.datetime.now(datetime.timezone.utc)
-    test_time2 = test_time1 + datetime.timedelta(seconds=5)
+    base_date = datetime.datetime.now(datetime.timezone.utc)
+    test_time1 = base_date + datetime.timedelta(minutes=1)
+    test_time2 = base_date + datetime.timedelta(minutes=2)
+    test_time3 = base_date - datetime.timedelta(days=5)
+
     test_usage1 = {
         'managed_node_count': 1,
         'reporting_time': test_time1.isoformat()
@@ -92,6 +96,10 @@ def test_add_usage_record(cba_pm, cba_config):
     test_usage2 = {
         'managed_node_count': 3,
         'reporting_time': test_time2.isoformat()
+    }
+    test_usage3 = {
+        'managed_node_count': 3,
+        'reporting_time': test_time3.isoformat()
     }
 
     # cache should initially be empty
@@ -107,7 +115,8 @@ def test_add_usage_record(cba_pm, cba_config):
     # add first usage record
     add_usage_record(
         record=test_usage1,
-        cache=cache
+        cache=cache,
+        billing_interval=cba_config.billing_interval
     )
 
     assert cache['usage_records'] != []
@@ -117,7 +126,8 @@ def test_add_usage_record(cba_pm, cba_config):
     # add second usage record
     add_usage_record(
         record=test_usage2,
-        cache=cache
+        cache=cache,
+        billing_interval=cba_config.billing_interval
     )
 
     assert cache['usage_records'] != []
@@ -127,18 +137,31 @@ def test_add_usage_record(cba_pm, cba_config):
     # add second usage record again, verifying that it is not added
     add_usage_record(
         record=test_usage2,
-        cache=cache
+        cache=cache,
+        billing_interval=cba_config.billing_interval
     )
 
     assert cache['usage_records'] != []
     assert test_usage2 in cache['usage_records']
     assert cache['usage_records'] == [test_usage1, test_usage2]
 
+    # add third usage record, verifying that it is not added
+    add_usage_record(
+        record=test_usage3,
+        cache=cache,
+        billing_interval=cba_config.billing_interval
+    )
+
+    assert cache['usage_records'] != []
+    assert test_usage3 not in cache['usage_records']
+    assert cache['usage_records'] == [test_usage1, test_usage2]
+
 
 def test_cache_meter_record(cba_pm, cba_config):
-    test_time1 = datetime.datetime.now(datetime.timezone.utc)
-    test_time2 = test_time1 + datetime.timedelta(seconds=5)
-    test_time3 = test_time2 + datetime.timedelta(seconds=5)
+    base_date = datetime.datetime.now(datetime.timezone.utc)
+    test_time1 = base_date + datetime.timedelta(minutes=5)
+    test_time2 = test_time1 + datetime.timedelta(minutes=5)
+    test_time3 = test_time2 + datetime.timedelta(minutes=5)
     test_usage_data = [
         {
             'managed_node_count': 1,
@@ -180,7 +203,8 @@ def test_cache_meter_record(cba_pm, cba_config):
     for record in test_usage_data:
         add_usage_record(
             record=record,
-            cache=cache
+            cache=cache,
+            billing_interval=cba_config.billing_interval
         )
 
     assert cache['usage_records'] == test_usage_data
@@ -201,3 +225,34 @@ def test_cache_meter_record(cba_pm, cba_config):
     assert cache['last_bill']['dimensions'] == test_dimensions
     assert 'metering_time' in cache['last_bill']
     assert cache['last_bill']['metering_time'] == test_time1
+
+
+def test_validate_usage_record(cba_pm, cba_config):
+    base_date = datetime.datetime.now(datetime.timezone.utc)
+    test_time1 = base_date + datetime.timedelta(minutes=1)
+    test_time2 = base_date + datetime.timedelta(days=60)
+    test_time3 = base_date - datetime.timedelta(days=60)
+
+    create_cache(cba_pm.hook, cba_config)
+    cache = cba_pm.hook.get_cache(config=cba_config)
+
+    valid = record_valid(
+        test_time1.isoformat(),
+        cache['next_bill_time'],
+        cba_config.billing_interval
+    )
+    assert valid
+
+    valid = record_valid(
+        test_time2.isoformat(),
+        cache['next_bill_time'],
+        cba_config.billing_interval
+    )
+    assert valid
+
+    valid = record_valid(
+        test_time3.isoformat(),
+        cache['next_bill_time'],
+        cba_config.billing_interval
+    )
+    assert not valid
