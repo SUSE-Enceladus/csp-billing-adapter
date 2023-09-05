@@ -52,6 +52,7 @@ from csp_billing_adapter import (
 )
 
 LOGGER_NAME = 'CSPBillingAdapter'
+LOGGING_FORMAT = '%(asctime)s.%(msecs)03d|%(levelname)s|%(name)s|%(message)s'
 DEFAULT_CONFIG_PATH = '/etc/csp_billing_adapter/config.yaml'
 
 config_path = os.environ.get('CSP_ADAPTER_CONFIG_FILE') or DEFAULT_CONFIG_PATH
@@ -75,7 +76,7 @@ def get_plugin_manager() -> pluggy.PluginManager:
 def setup_logging() -> logging.Logger:
     """Setup basic logging"""
     logging.basicConfig(
-        format='%(asctime)s.%(msecs)03d|%(levelname)s|%(name)s|%(message)s',
+        format=LOGGING_FORMAT,
         datefmt='%Y-%m-%dT%H:%M:%S'
     )
     log = logging.getLogger(LOGGER_NAME)
