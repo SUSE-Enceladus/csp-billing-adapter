@@ -19,7 +19,7 @@
 %global skip_python2 1
 %define pythons python3
 Name:           csp-billing-adapter
-Version:        0.7.0
+Version:        0.6.0
 Release:        0
 Summary:        Reports marketplace billing information to CSP API
 License:        Apache-2.0
