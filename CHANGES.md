@@ -1,3 +1,16 @@
+v0.6.0 (2023-09-12)
+-------------------
+
+- Update message when records list is empty
+- Only sleep at initial deployment
+- Skip invalid records
+- Log format variables on a const
+
+v0.5.0 (2023-08-18)
+-------------------
+
+- Add logging level from config file
+
 v0.4.0 (2023-08-01)
 -------------------
 
