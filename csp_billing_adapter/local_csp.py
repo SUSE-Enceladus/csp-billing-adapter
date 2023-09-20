@@ -83,3 +83,9 @@ def get_account_info(config: Config) -> str:
         'arch': 'x86_64',
         'cloud_provider': 'local'
     }
+
+
+@csp_billing_adapter.hookimpl
+def get_version():
+    version = csp_billing_adapter.__version__
+    return ('test_csp_plugin', version)

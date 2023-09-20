@@ -48,7 +48,8 @@ from csp_billing_adapter.bill_utils import process_metering
 from csp_billing_adapter import (
     csp_hookspecs,
     hookspecs,
-    storage_hookspecs
+    storage_hookspecs,
+    hookimpls
 )
 
 LOGGER_NAME = 'CSPBillingAdapter'
@@ -70,6 +71,7 @@ def get_plugin_manager() -> pluggy.PluginManager:
     pm.add_hookspecs(hookspecs)
     pm.add_hookspecs(csp_hookspecs)
     pm.add_hookspecs(storage_hookspecs)
+    pm.register(hookimpls)
     pm.load_setuptools_entrypoints('csp_billing_adapter')
     return pm
 
@@ -164,22 +166,27 @@ def initial_adapter_setup(
 
         csp_config = create_csp_config(config, account_info)
 
-        try:
-            retry_on_exception(
-                functools.partial(
-                    hook.save_csp_config,
-                    config=config,
-                    csp_config=csp_config
-                ),
-                logger=log,
-                func_name="hook.save_csp_config"
-            )
-        except Exception as exc:
-            # raise an application specific exception that will be
-            # caught by the event loop in main() and cause an exit
-            # with a failure status.
-            log.error("Unable to save CSP config: %s", str(exc))
-            raise FailedToSaveCSPConfigError(str(exc)) from exc
+    # Update csp-config with latest plugin versions
+    versions = hook.get_version()
+    if versions:
+        csp_config['versions'] = dict(versions)
+
+    try:
+        retry_on_exception(
+            functools.partial(
+                hook.save_csp_config,
+                config=config,
+                csp_config=csp_config
+            ),
+            logger=log,
+            func_name="hook.save_csp_config"
+        )
+    except Exception as exc:
+        # raise an application specific exception that will be
+        # caught by the event loop in main() and cause an exit
+        # with a failure status.
+        log.error("Unable to save CSP config: %s", str(exc))
+        raise FailedToSaveCSPConfigError(str(exc)) from exc
 
     log.debug("Initializing the cache")
     try:

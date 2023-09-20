@@ -28,7 +28,8 @@ from pytest import raises
 from csp_billing_adapter.local_csp import (
     get_account_info,
     get_csp_name,
-    meter_billing
+    meter_billing,
+    get_version
 )
 
 
@@ -92,3 +93,9 @@ def test_get_account_info(cba_config):
 
     account_info = get_account_info(cba_config)
     assert account_info == test_account_info
+
+
+def test_get_version():
+    version = get_version()
+    assert version[0] == 'test_csp_plugin'
+    assert version[1]

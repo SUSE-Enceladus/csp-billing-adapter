@@ -50,3 +50,12 @@ def load_defaults(defaults: dict) -> None:
     :param defaults:
         The hash into which the defaults will be loaded.
     """
+
+
+@hookspec()
+def get_version() -> (str, str):
+    """
+    Returns the version of the current plugin.
+
+    :return: A tuple with the plugin name and the version.
+    """
