@@ -95,7 +95,11 @@ has the following format:
       "pkcs7": "pkcs7",
       "cloud_provider": "string"
     },
-    "base_product": string
+    "base_product": string,
+    "versions": {
+        "core": "1.2.3",
+        ...
+    }
 }
 ```
 
@@ -124,6 +128,9 @@ the running container/vm from the CSP. The format is dependent on the CSP.
 
 **base_product:** This is a CPE product + version string in the following
 format `cpe:/o:suse:product:v1.2.3`.
+
+**versions:** This is a dictionary mapping installed plugins to their
+respective version. The main package is listed as "core".
 
 ### cache
 
