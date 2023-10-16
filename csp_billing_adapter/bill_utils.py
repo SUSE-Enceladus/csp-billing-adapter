@@ -610,11 +610,7 @@ def process_metering(
             cache['billing_status'] = billing_status
             return
         else:
-            # clear any previous failed state
-            try:
-                del cache['billing_status']
-            except KeyError:
-                pass
+            cache['billing_status'] = {}
 
         log.info(
             "Metering submitted, billing status: %s",
