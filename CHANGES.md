@@ -1,3 +1,8 @@
+v0.8.0 (2023-10-16)
+-------------------
+
+- Fix bug when clearing billing status. Use empty dictionary.
+
 v0.7.0 (2023-09-20)
 -------------------
 
