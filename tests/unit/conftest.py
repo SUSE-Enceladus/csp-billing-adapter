@@ -24,6 +24,7 @@ from csp_billing_adapter import (
     local_csp,
     memory_cache,
     memory_csp_config,
+    memory_archive,
     product_api
 )
 
@@ -97,6 +98,7 @@ def cba_pm(cba_config):
     pm.register(product_api)
     pm.register(memory_cache)
     pm.register(memory_csp_config)
+    pm.register(memory_archive)
     pm.register(local_csp)
 
     # reset the in-memory cache to empty

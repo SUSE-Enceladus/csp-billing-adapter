@@ -164,7 +164,11 @@ def initial_adapter_setup(
             func_name="hook.get_account_info"
         )
 
-        csp_config = create_csp_config(config, account_info)
+        csp_config = create_csp_config(
+            config,
+            account_info,
+            hook.get_archive_location()
+        )
 
     # Update csp-config with latest plugin versions
     versions = hook.get_version()
