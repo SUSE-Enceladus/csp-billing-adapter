@@ -39,16 +39,16 @@ def get_metering_archive(config: Config) -> list:
 
     :param config: The application configuration dictionary
     :return: Return a list of the archive data which contains a history
-             of recent meterings. The length of this data is determined
-             by application config.
+             of recent data usage and meterings. The length of this data
+             is determined by application config.
     """
 
 
 @hookspec(firstresult=True)
 def save_metering_archive(config: Config, archive_data: list) -> None:
     """
-    Saves the metering archive data to stateful storage
+    Saves the archive data to stateful storage
 
     :param config: The application configuration dictionary
-    :param archive_data: A list of metering archive data
+    :param archive_data: A list of usage data and meterings
     """
