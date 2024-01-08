@@ -26,7 +26,12 @@ from csp_billing_adapter.utils import string_to_date
 
 def test_create_csp_config(cba_config):
     account_info = {'name': 'account1', 'id': '1234567890'}
-    new_csp_config = create_csp_config(cba_config, account_info)
+    archive_location = '/tmp/fake_archive.json'
+    new_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
 
     assert 'billing_api_access_ok' in new_csp_config
     assert new_csp_config['billing_api_access_ok'] is True

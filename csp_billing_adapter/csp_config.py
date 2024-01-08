@@ -34,7 +34,8 @@ log = logging.getLogger('CSPBillingAdapter')
 
 def create_csp_config(
     config: Config,
-    account_info: dict
+    account_info: dict,
+    archive_location: str
 ) -> dict:
     """
     Initialize the csp_config data store.
@@ -44,6 +45,8 @@ def create_csp_config(
     :param account_info:
         A dictionary containing CSP account info that is
         added to the csp_config.
+    :param archive_location:
+        The data archive location.
     """
     now = get_now()
     expire = date_to_string(get_date_delta(now, config.reporting_interval))
@@ -53,6 +56,7 @@ def create_csp_config(
         'timestamp': date_to_string(now),
         'expire': expire,
         'customer_csp_data': account_info,
+        'archive_location': archive_location,
         'errors': []
     }
 

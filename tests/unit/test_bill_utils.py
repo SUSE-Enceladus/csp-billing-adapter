@@ -561,7 +561,12 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
     assert test_csp_config == {}
 
     account_info = {'cusomter': 'data'}
-    test_csp_config = create_csp_config(cba_config, account_info)
+    archive_location = '/tmp/fake_archive.json'
+    test_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
 
     assert 'billing_api_access_ok' in test_csp_config
     assert test_csp_config['billing_api_access_ok'] is True
@@ -729,7 +734,12 @@ def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
     assert test_csp_config == {}
 
     account_info = {'cusomter': 'data'}
-    test_csp_config = create_csp_config(cba_config, account_info)
+    archive_location = '/tmp/fake_archive.json'
+    test_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
 
     assert 'billing_api_access_ok' in test_csp_config
     assert test_csp_config['billing_api_access_ok'] is True
@@ -820,7 +830,12 @@ def test_process_metering_legacy_return(mock_sleep, cba_pm, cba_config):
         )
 
     account_info = {'customer': 'data'}
-    test_csp_config = create_csp_config(cba_config, account_info)
+    archive_location = '/tmp/fake_archive.json'
+    test_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
 
     with mock.patch(
         'csp_billing_adapter.local_csp.randrange',
