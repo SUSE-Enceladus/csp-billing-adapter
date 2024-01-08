@@ -30,6 +30,9 @@ reporting_api_is_cumulative:
 reporting_interval: 
     Sets the time in seconds when the csp-billing-adapter reports to the CSP API. The values the csp-billing-adapter reports are determined by a combination of the settings for `reporting_api_is_cumulative` and `billing_interval`.
 
+archive_retention_period:
+    Sets the time in months that metering data is retained in the data archive.
+
 usage_metrics: 
 
   {metric name}:

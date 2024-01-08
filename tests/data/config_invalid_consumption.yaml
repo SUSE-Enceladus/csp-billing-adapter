@@ -3,6 +3,7 @@ product_code: foo
 query_interval: 3600
 reporting_api_is_cumulative: true
 reporting_interval: 3600
+archive_retention_period: 6
 usage_metrics:
   managed_node_count:
     consumption_reporting: invalid

@@ -3,6 +3,7 @@ product_code: TBD
 query_interval: 3600
 reporting_api_is_cumulative: CSP_DEPENDENT_SETTING
 reporting_interval: CSP_DEPENDENT_SETTING
+archive_retention_period: 6
 usage_metrics:
   managed_node_count:
     consumption_reporting: volume
