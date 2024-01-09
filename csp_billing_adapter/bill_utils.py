@@ -39,6 +39,7 @@ from csp_billing_adapter.utils import (
     string_to_date
 )
 from csp_billing_adapter.config import Config
+from csp_billing_adapter.archive import archive_record
 
 log = logging.getLogger('CSPBillingAdapter')
 
@@ -655,3 +656,17 @@ def process_metering(
             )
             csp_config['usage'] = billable_usage
             csp_config['last_billed'] = metering_time
+
+            # Save last usage and metering records to archive
+            billing_record = {
+                'billing_time': metering_time,
+                'billing_status': billing_status,
+                'billed_usage': billed_dimensions,
+                'usage_records': billable_records
+            }
+
+            archive_record(
+                hook,
+                config,
+                billing_record
+            )

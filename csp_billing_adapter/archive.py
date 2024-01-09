@@ -16,6 +16,16 @@
 
 """Utility functions for handling a rolling dictionary archive."""
 
+import functools
+import logging
+
+from csp_billing_adapter.config import Config
+from csp_billing_adapter.utils import retry_on_exception
+
+log = logging.getLogger('CSPBillingAdapter')
+
+DEFAULT_RETENTION_PERIOD = 6  # in months
+
 
 def append_metering_records(
     archive: list,
@@ -45,3 +55,48 @@ def append_metering_records(
         return archive[1:]
     else:
         return archive
+
+
+def archive_record(
+    hook,
+    config: Config,
+    billing_record: dict
+) -> None:
+    """
+    :param hook:
+        The Pluggy plugin manager hook that will be
+        used to call the meter_billing operation.
+    :param config:
+        The configuration specifying the metrics that
+        need to be processed in the usage records list.
+    :param billing_record:
+        The dictionary containing the most recent
+        metering and usage records to be archived.
+    """
+    archive = retry_on_exception(
+        functools.partial(
+            hook.get_metering_archive,
+            config=config,
+        ),
+        logger=log,
+        func_name="hook.get_metering_archive"
+    )
+
+    if archive is None:
+        archive = []
+
+    archive = append_metering_records(
+        archive,
+        billing_record,
+        config.archive_retention_period or DEFAULT_RETENTION_PERIOD
+    )
+
+    retry_on_exception(
+        functools.partial(
+            hook.save_metering_archive,
+            config=config,
+            archive_data=archive
+        ),
+        logger=log,
+        func_name="hook.save_metering_archive"
+    )

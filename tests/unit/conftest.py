@@ -107,6 +107,9 @@ def cba_pm(cba_config):
     # reset the in-memory csp_config to empty
     pm.hook.save_csp_config(config=cba_config, csp_config=dict())
 
+    # reset the in-memory archive to empty
+    pm.hook.save_metering_archive(config=cba_config, archive_data=list())
+
     return pm
 
 
