@@ -19,13 +19,26 @@
 
 def append_metering_records(
     archive: list,
-    records: dict,
+    billing_record: dict,
     max_length: int
-):
+) -> list:
     """
-    Append metering records to the archive while maintaining max length.
+    Append usage and metering records to the archive
+
+    If archive is larger than max length, drop the oldest record.
+
+    :param archive:
+        The list of meterings and usage records to append to.
+    :param billing_record:
+        The dictionary containing the most recent
+        metering and usage records to be archived.
+    :param max_length:
+        The max size of the archive list.
+    :return:
+        The archive of meterings and usage records with the
+        billing_record appended.
     """
-    archive.append(records)
+    archive.append(billing_record)
 
     if len(archive) > max_length:
         return archive[1:]
