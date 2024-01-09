@@ -36,7 +36,8 @@ def append_metering_records(
         The max size of the archive list.
     :return:
         The archive of meterings and usage records with the
-        billing_record appended.
+        billing_record appended. If archive ends up greater
+        than max lengh the first (oldest) record is dropped.
     """
     archive.append(billing_record)
 
