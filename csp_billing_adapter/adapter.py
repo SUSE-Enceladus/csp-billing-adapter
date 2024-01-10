@@ -49,6 +49,7 @@ from csp_billing_adapter import (
     csp_hookspecs,
     hookspecs,
     storage_hookspecs,
+    archive_hookspecs,
     hookimpls
 )
 
@@ -71,6 +72,7 @@ def get_plugin_manager() -> pluggy.PluginManager:
     pm.add_hookspecs(hookspecs)
     pm.add_hookspecs(csp_hookspecs)
     pm.add_hookspecs(storage_hookspecs)
+    pm.add_hookspecs(archive_hookspecs)
     pm.register(hookimpls)
     pm.load_setuptools_entrypoints('csp_billing_adapter')
     return pm

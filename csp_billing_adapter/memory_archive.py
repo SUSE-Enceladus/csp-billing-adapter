@@ -20,6 +20,10 @@ import logging
 
 import csp_billing_adapter
 
+from csp_billing_adapter.config import Config
+
+memory_archive = []
+
 log = logging.getLogger('CSPBillingAdapter')
 
 
@@ -27,3 +31,15 @@ log = logging.getLogger('CSPBillingAdapter')
 def get_archive_location():
     """Retrieve archive location."""
     return '/tmp/fake_archive.json'
+
+
+@csp_billing_adapter.hookimpl(trylast=True)
+def get_metering_archive(config: Config):
+    return memory_archive.copy()
+
+
+@csp_billing_adapter.hookimpl(trylast=True)
+def save_metering_archive(config: Config, archive_data: list):
+    global memory_archive
+
+    memory_archive = archive_data
