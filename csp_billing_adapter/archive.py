@@ -25,9 +25,6 @@ from csp_billing_adapter.utils import retry_on_exception
 
 log = logging.getLogger('CSPBillingAdapter')
 
-DEFAULT_RETENTION_PERIOD = 6  # in months
-DEFAULT_BYTES_LIMIT = 0
-
 
 def append_metering_records(
     archive: list,
@@ -95,6 +92,13 @@ def archive_record(
         The dictionary containing the most recent
         metering and usage records to be archived.
     """
+    retention_period = config.archive_retention_period
+    bytes_limit = config.archive_bytes_limit
+
+    if retention_period < 1 or bytes_limit in (0, 1):
+        # Archive feature has been disabled, do nothing
+        return
+
     archive = retry_on_exception(
         functools.partial(
             hook.get_metering_archive,
@@ -110,8 +114,8 @@ def archive_record(
     archive = append_metering_records(
         archive,
         billing_record,
-        config.archive_retention_period or DEFAULT_RETENTION_PERIOD,
-        config.archive_bytes_limit or DEFAULT_BYTES_LIMIT
+        retention_period,
+        bytes_limit
     )
 
     retry_on_exception(

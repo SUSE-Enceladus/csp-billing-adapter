@@ -18,6 +18,8 @@ test_archive is part of csp-billing-adapter and provides units tests
 for the archive util functions.
 """
 
+from pytest import mark
+
 from csp_billing_adapter.archive import (
     append_metering_records,
     archive_record
@@ -104,3 +106,43 @@ def test_archive_record(cba_pm, cba_config):
     archive = cba_pm.hook.get_metering_archive(config=cba_config)
     assert len(archive) == 1
     assert archive[0] == record
+
+
+@mark.config('config_good_average_no_archive.yaml')
+def test_archive_disabled(cba_pm, cba_config):
+    record = {
+        'billing_time': '2024-02-09T18:11:59.527064+00:00',
+        'billing_status': {
+            'tier_1': {
+                'record_id': 'd92c6e6556b14770994f5b64ebe3d339',
+                'status': 'succeeded'
+            }
+        },
+        'billed_usage': {
+            'tier_1': 10
+        },
+        'usage_records': [
+            {
+                'managed_node_count': 9,
+                'reporting_time': '2024-01-09T18:11:59.527673+00:00',
+                'base_product': 'cpe:/o:suse:product:v1.2.3'
+            },
+            {
+                'managed_node_count': 9,
+                'reporting_time': '2024-01-09T18:11:59.529096+00:00',
+                'base_product': 'cpe:/o:suse:product:v1.2.3'
+            },
+            {
+                'managed_node_count': 10,
+                'reporting_time': '2024-01-09T18:11:59.531424+00:00',
+                'base_product': 'cpe:/o:suse:product:v1.2.3'
+            }
+        ]
+    }
+    archive_record(
+        cba_pm.hook,
+        cba_config,
+        record
+    )
+    archive = cba_pm.hook.get_metering_archive(config=cba_config)
+    assert len(archive) == 0
