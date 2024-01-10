@@ -39,10 +39,31 @@ def test_append_metering_records():
     }
 
     for i in range(10):
-        archive = append_metering_records(archive, records, 6)
+        archive = append_metering_records(archive, records, 6, 0)
 
     assert len(archive) == 6
     assert archive[4] == records
+
+
+def test_append_metering_records_max_bytes():
+    archive = []
+    records = {
+        "bill_time": "2024-01-03T20:06:42.076972+00:00",
+        "metering_id": "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+        "usage_records": [
+            {
+                "managed_node_count": 9,
+                "managed_systems": 6,
+                "reporting_time": "2024-01-03T20:06:42.076972+00:00"
+            }
+        ]
+    }
+
+    for i in range(4):
+        archive = append_metering_records(archive, records, 6, 456)
+
+    assert len(archive) == 2
+    assert archive[0] == records
 
 
 def test_archive_record(cba_pm, cba_config):

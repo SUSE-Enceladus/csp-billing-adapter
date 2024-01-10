@@ -33,6 +33,9 @@ reporting_interval:
 archive_retention_period:
     Sets the time in months that meterings and usage records are retained in the data archive.
 
+archive_bytes_limit:
+    Sets the max size in bytes for the metering archive. The archive will be trimmed to stay below this limit.
+
 usage_metrics: 
 
   {metric name}:

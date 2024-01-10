@@ -6,6 +6,7 @@ reporting_api_is_cumulative: CSP_DEPENDENT_SETTING
 reporting_interval: CSP_DEPENDENT_SETTING
 support_info_collection_cmd: CSP_DEPENDENT_SETTING
 archive_retention_period: 6
+archive_bytes_limit: 0
 usage_metrics:
   ha_systems:
     consumption_reporting: volume

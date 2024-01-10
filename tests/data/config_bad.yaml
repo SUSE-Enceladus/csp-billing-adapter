@@ -4,6 +4,7 @@ query_interval: 3600
 reporting_api_is_cumulative: true
 reporting_interval: 3600
 archive_retention_period: 6
+archive_bytes_limit: 0
 usage_metrics:
   managed_node_count:
     consumption_reporting: volume
