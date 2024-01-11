@@ -665,8 +665,12 @@ def process_metering(
                 'usage_records': billable_records
             }
 
-            archive_record(
-                hook,
-                config,
-                billing_record
-            )
+            try:
+                archive_record(
+                    hook,
+                    config,
+                    billing_record
+                )
+            except Exception as error:
+                # Non-fatal error is only logged
+                log.exception(error)
