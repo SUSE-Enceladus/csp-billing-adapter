@@ -220,7 +220,8 @@ timestamps. The format is as follows:
                 '{usage_metric}': int,
                 'reporting_time': 'string(date timestamp)',
                 'base_product': 'cpe:/o:suse:product:v1.2.3'
-            }
+            },
+            ...
         ]
     }
 ]
