@@ -33,6 +33,15 @@ layer. These include **`setup_adapter`**, **`load_defaults`**, and
 **`get_usage_data`**. Details about these hookspecs are found in
 [hookspecs.py](https://github.com/SUSE-Enceladus/csp-billing-adapter/blob/main/csp_billing_adapter/hookspecs.py).
 
+### Archive layer
+
+There are three hookspecs for retrieving and persisting the metering
+archive to stateful storage. A plugin implementing the hooks for
+the archive layer is required for the archive functionality to work.
+The hooks include **`get_archive_location`**, **`get_metering_archive`**,
+**`save_metering_archive`**. Details can be found in
+[archive_hookspecs.py](https://github.com/SUSE-Enceladus/csp-billing-adapter/blob/data-archive/csp_billing_adapter/archive_hookspecs.py).
+
 ## Configuration
 
 The adapter is configured via a YAML file that is accesible to the
@@ -47,6 +56,8 @@ api: THE_PATH_WHERE_WE_GET_THE_UNIT_INFORMATION
 billing_interval: monthly|hourly
 query_interval: Time in seconds
 product_code: TBD
+archive_retention_period: 6
+archive_bytes_limit: 1048576
 usage_metrics:
   metric_1:
     usage_aggregation: maximum
@@ -184,6 +195,41 @@ timestamp that denotes when the usage record was reported and
 
 **dimensions:** A dictionary containing the dimension names and units
 billed in the last metering.
+
+### Archive
+
+This is the metering and usage records archive. It contains a list of
+metering records with the relevent usage data, billing status, and
+timestamps. The format is as follows:
+
+```
+[
+  {
+        'billing_time': 'string(date timestamp)',
+        'billing_status': {
+            '{usage_key}': {
+                'record_id': string,
+                'status': 'succeeded'
+            }
+        },
+        'billed_usage': {
+            '{usage_key}': int
+        },
+        'usage_records': [
+            {
+                '{usage_metric}': int,
+                'reporting_time': 'string(date timestamp)',
+                'base_product': 'cpe:/o:suse:product:v1.2.3'
+            }
+        ]
+    }
+]
+```
+
+**billing_time:** A timestamp denoting when the metering record was submitted.
+**billing_status:** A dictionary of the dimensions billed and billing status.
+**billed_usage:** A dicitonary of the usage incurred during the billing cycle per dimension.
+**usage_records:** A list of all the usage records logged during the billing period.
 
 ## Service
 
