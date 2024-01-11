@@ -18,24 +18,26 @@
 
 import functools
 import logging
+import json
 
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.utils import retry_on_exception
 
 log = logging.getLogger('CSPBillingAdapter')
 
-DEFAULT_RETENTION_PERIOD = 6  # in months
-
 
 def append_metering_records(
     archive: list,
     billing_record: dict,
-    max_length: int
+    max_length: int,
+    max_bytes: int
 ) -> list:
     """
     Append usage and metering records to the archive
 
-    If archive is larger than max length, drop the oldest record.
+    If archive is larger than max length drop the oldest
+    record. If the archive is larger than the max bytes
+    limit trim it until it satisfies the limit.
 
     :param archive:
         The list of meterings and usage records to append to.
@@ -44,17 +46,34 @@ def append_metering_records(
         metering and usage records to be archived.
     :param max_length:
         The max size of the archive list.
+    :param max_bytes:
+        The max size in bytes of the archive.
     :return:
         The archive of meterings and usage records with the
         billing_record appended. If archive ends up greater
-        than max lengh the first (oldest) record is dropped.
+        than max lengh or max bytes the archive is trimmed
+        as necessary to satisfy both max_length and
+        max_bytes.
     """
     archive.append(billing_record)
 
     if len(archive) > max_length:
-        return archive[1:]
-    else:
-        return archive
+        archive = archive[1:]
+
+    if max_bytes > 1:
+        # Treat 0 and 1 the same. Disable max bytes option.
+        # This prevents infitite loop when value is 1 since
+        # empty list is 2 bytes.
+        while True:
+            # Trim archive until it is smaller than max bytes
+            archive_size = len(bytes(json.dumps(archive), 'utf-8'))
+
+            if archive_size > max_bytes:
+                archive = archive[1:]
+            else:
+                break
+
+    return archive
 
 
 def archive_record(
@@ -73,6 +92,13 @@ def archive_record(
         The dictionary containing the most recent
         metering and usage records to be archived.
     """
+    retention_period = config.archive_retention_period
+    bytes_limit = config.archive_bytes_limit
+
+    if retention_period < 1 or bytes_limit in (0, 1):
+        # Archive feature has been disabled, do nothing
+        return
+
     archive = retry_on_exception(
         functools.partial(
             hook.get_metering_archive,
@@ -88,7 +114,8 @@ def archive_record(
     archive = append_metering_records(
         archive,
         billing_record,
-        config.archive_retention_period or DEFAULT_RETENTION_PERIOD
+        retention_period,
+        bytes_limit
     )
 
     retry_on_exception(
