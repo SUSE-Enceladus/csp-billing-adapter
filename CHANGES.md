@@ -1,3 +1,8 @@
+v0.9.0 (2024-01-12)
+-------------------
+
+- Implement metering and usage records archive
+
 v0.8.0 (2023-10-16)
 -------------------
 
