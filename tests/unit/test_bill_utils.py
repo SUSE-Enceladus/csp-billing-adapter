@@ -561,7 +561,12 @@ def test_process_metering(mock_sleep, cba_pm, cba_config):
     assert test_csp_config == {}
 
     account_info = {'cusomter': 'data'}
-    test_csp_config = create_csp_config(cba_config, account_info)
+    archive_location = '/tmp/fake_archive.json'
+    test_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
 
     assert 'billing_api_access_ok' in test_csp_config
     assert test_csp_config['billing_api_access_ok'] is True
@@ -729,7 +734,12 @@ def test_process_metering_no_matching_dimensions(cba_pm, cba_config):
     assert test_csp_config == {}
 
     account_info = {'cusomter': 'data'}
-    test_csp_config = create_csp_config(cba_config, account_info)
+    archive_location = '/tmp/fake_archive.json'
+    test_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
 
     assert 'billing_api_access_ok' in test_csp_config
     assert test_csp_config['billing_api_access_ok'] is True
@@ -791,8 +801,16 @@ def test_create_billing_status():
 
 
 @mark.config('config_testing_mixed.yaml')
+@mock.patch('csp_billing_adapter.bill_utils.archive_record')
 @mock.patch('csp_billing_adapter.utils.time.sleep')
-def test_process_metering_legacy_return(mock_sleep, cba_pm, cba_config):
+def test_process_metering_legacy_return(
+    mock_sleep,
+    mock_archive,
+    cba_pm,
+    cba_config
+):
+    mock_archive.side_effect = Exception('Failed to save archive!')
+
     # initialise the cache
     create_cache(
         hook=cba_pm.hook,
@@ -820,7 +838,12 @@ def test_process_metering_legacy_return(mock_sleep, cba_pm, cba_config):
         )
 
     account_info = {'customer': 'data'}
-    test_csp_config = create_csp_config(cba_config, account_info)
+    archive_location = '/tmp/fake_archive.json'
+    test_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
 
     with mock.patch(
         'csp_billing_adapter.local_csp.randrange',

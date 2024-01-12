@@ -3,6 +3,8 @@ product_code: foo
 query_interval: 3600
 reporting_api_is_cumulative: true
 reporting_interval: 3600
+archive_retention_period: 6
+archive_bytes_limit: -1
 usage_metrics:
   jobs:
     # test metric with average aggregation, volume reporting
