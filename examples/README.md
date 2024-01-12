@@ -31,10 +31,10 @@ reporting_interval:
     Sets the time in seconds when the csp-billing-adapter reports to the CSP API. The values the csp-billing-adapter reports are determined by a combination of the settings for `reporting_api_is_cumulative` and `billing_interval`.
 
 archive_retention_period:
-    Sets the time in months that meterings and usage records are retained in the data archive.
+    Sets the time in billing cycles that meterings and usage records are retained in the data archive. For example when the billing period is in months a value of 6 will retain 6 months of records. If the value is set to 0 the archive functionality will be disabled.
 
 archive_bytes_limit:
-    Sets the max size in bytes for the metering archive. The archive will be trimmed to stay below this limit.
+    Sets the max size in bytes for the metering archive. The archive will be trimmed to stay below this limit. To disable the bytes limit set the value to -1. To disable the archive functionality set the value to 0.
 
 usage_metrics: 
 
