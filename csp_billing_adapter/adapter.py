@@ -259,15 +259,29 @@ def event_loop_handler(
         cache['next_bill_time']
     )
 
+    trial_remaining = cache.get('trial_remaining', 0)
+
     if now >= string_to_date(cache['next_bill_time']):
-        log.info('Attempt a billing cycle update')
-        process_metering(
-            hook,
-            config,
-            now,
-            cache,
-            csp_config
-        )
+        if trial_remaining > 0:
+            log.info('Attempt a free trial billing cycle update')
+            process_metering(
+                hook,
+                config,
+                now,
+                cache,
+                csp_config,
+                empty_metering=True,
+                free_trial=True
+            )
+        else:
+            log.info('Attempt a billing cycle update')
+            process_metering(
+                hook,
+                config,
+                now,
+                cache,
+                csp_config
+            )
     elif now >= string_to_date(cache['next_reporting_time']):
         log.info('Attempt a reporting cycle update')
         process_metering(

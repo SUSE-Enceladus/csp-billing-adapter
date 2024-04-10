@@ -485,7 +485,8 @@ def process_metering(
     now: datetime.datetime,
     cache: dict,
     csp_config: dict,
-    empty_metering: bool = False
+    empty_metering: bool = False,
+    free_trial: bool = False
 ) -> None:
     """
     Handle the CSP metering process, updating the csp_config and cache
@@ -628,7 +629,7 @@ def process_metering(
         csp_config['billing_api_access_ok'] = True
         csp_config['expire'] = next_reporting_time
 
-        if not empty_metering:
+        if not empty_metering or free_trial:
             # Usage was billed
             next_bill_time = date_to_string(
                 get_next_bill_time(
@@ -674,3 +675,6 @@ def process_metering(
             except Exception as error:
                 # Non-fatal error is only logged
                 log.exception(error)
+
+        if free_trial:
+            cache['trial_remaining'] = cache['trial_remaining'] - 1

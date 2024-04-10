@@ -60,7 +60,8 @@ def create_cache(hook, config: Config) -> dict:
         'next_bill_time': date_to_string(next_bill_time),
         'next_reporting_time': date_to_string(next_reporting_time),
         'usage_records': [],
-        'last_bill': {}
+        'last_bill': {},
+        'trial_remaining': 1
     }
 
     try:

@@ -251,6 +251,7 @@ def test_event_loop_handler(
     assert cache['usage_records'] != []
     assert len(cache['usage_records']) == 1
     assert cache['last_bill'] == {}
+    assert cache['trial_remaining'] == 1
 
     # Similarly the meter_billing() call should have succeeded
     # not triggered the generation of a new bill.
@@ -324,6 +325,7 @@ def test_event_loop_handler(
     assert cache != {}
     assert cache['usage_records'] == []
     assert cache['last_bill'] != {}
+    assert cache['trial_remaining'] == 0
     assert 'dimensions' in cache['last_bill']
     assert 'billing_status' in cache['last_bill']
     assert 'metering_time' in cache['last_bill']
