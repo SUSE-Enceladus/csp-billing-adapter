@@ -252,6 +252,21 @@ def event_loop_handler(
         add_usage_record(usage, cache, config.billing_interval)
         csp_config['base_product'] = usage.get('base_product', '')
 
+    try:
+        archive = retry_on_exception(
+            functools.partial(
+                hook.get_metering_archive,
+                config=config,
+            ),
+            logger=log,
+            func_name='hook.get_metering_archive'
+        )
+    except Exception:
+        archive = None
+
+    if archive is None:
+        archive = []
+
     log.debug(
         "Now: %s, Next Reporting Time: %s, Next Bill Time: %s",
         date_to_string(now),
@@ -259,15 +274,37 @@ def event_loop_handler(
         cache['next_bill_time']
     )
 
+    trial_remaining = cache.get('trial_remaining', 0)
+
     if now >= string_to_date(cache['next_bill_time']):
-        log.info('Attempt a billing cycle update')
-        process_metering(
-            hook,
-            config,
-            now,
-            cache,
-            csp_config
-        )
+        if trial_remaining > 0 and len(archive) > 0:
+            msg = (
+                'Free trial is active but archive contains metering history. '
+                'Usage will be billed for the previous cycle.'
+            )
+            log.warning(msg)
+            csp_config['errors'].append(msg)
+
+        if trial_remaining > 0 and len(archive) == 0:
+            log.info('Attempt a free trial billing cycle update')
+            process_metering(
+                hook,
+                config,
+                now,
+                cache,
+                csp_config,
+                empty_metering=True,
+                free_trial=True
+            )
+        else:
+            log.info('Attempt a billing cycle update')
+            process_metering(
+                hook,
+                config,
+                now,
+                cache,
+                csp_config
+            )
     elif now >= string_to_date(cache['next_reporting_time']):
         log.info('Attempt a reporting cycle update')
         process_metering(
