@@ -15,9 +15,14 @@
 # Please submit bugfixes or comments via https://bugs.opensuse.org/
 #
 
-%{?!python_module:%define python_module() python-%{**} python3-%{**}}
-%global skip_python2 1
-%define pythons python3
+%if 0%{?suse_version} > 1500
+%bcond_without libalternatives
+%else
+%bcond_with libalternatives
+%endif
+%define python python
+%{?sle15_python_module_pythons}
+
 Name:           csp-billing-adapter
 Version:        0.10.0
 Release:        0
@@ -28,10 +33,12 @@ URL:            https://github.com/SUSE-Enceladus/csp-billing-adapter
 Source:         https://files.pythonhosted.org/packages/source/c/%{name}/%{name}-%{version}.tar.gz
 BuildRequires:  fdupes
 BuildRequires:  python-rpm-macros
-BuildRequires:  %{python_module setuptools}
+BuildRequires:  %{python_module pip}
 BuildRequires:  %{python_module pluggy}
 BuildRequires:  %{python_module python-dateutil}
 BuildRequires:  %{python_module PyYAML}
+BuildRequires:  %{python_module setuptools}
+BuildRequires:  %{python_module wheel}
 %if %{with test}
 BuildRequires:  %{python_module pytest}
 BuildRequires:  %{python_module coverage}
@@ -41,6 +48,13 @@ Requires:       python-setuptools
 Requires:       python-pluggy
 Requires:       python-python-dateutil
 Requires:       python-PyYAML
+%if %{with libalternatives}
+BuildRequires:  alts
+Requires:       alts
+%else
+Requires(post): update-alternatives
+Requires(postun): update-alternatives
+%endif
 BuildArch:      noarch
 %python_subpackages
 
@@ -66,10 +80,11 @@ want the dependency on systemd when the adapter runs in a VM.
 %autosetup -n %{name}-%{version}
 
 %build
-%python_build
+%pyproject_wheel
 
 %install
-%python_install
+%pyproject_install
+%python_clone -a %{buildroot}%{_bindir}/%{name}
 %python_expand %fdupes %{buildroot}%{$python_sitelib}
 mkdir -p %{buildroot}%{_unitdir}
 install -m 644 systemd/csp-billing-adapter.service %{buildroot}%{_unitdir}
@@ -79,13 +94,17 @@ install -m 644 systemd/csp-billing-adapter.service %{buildroot}%{_unitdir}
 %pytest
 %endif
 
+
 %post service
+%{python_install_alternative %{name}}
 %service_add_post csp-billing-adapter.service
 
 %postun service
+%{python_uninstall_alternative %{name}}
 %service_del_postun csp-billing-adapter.service
 
 %pre service
+%python_libalternatives_reset_alternative %{name}
 %service_add_pre csp-billing-adapter.service
 
 %preun service
@@ -96,7 +115,7 @@ install -m 644 systemd/csp-billing-adapter.service %{buildroot}%{_unitdir}
 %doc README.md CONTRIBUTING.md CHANGES.md
 %{python_sitelib}/csp_billing_adapter
 %{python_sitelib}/csp_billing_adapter-%{version}*-info
-%{_bindir}/%{name}
+%python_alternative %{_bindir}/%{name}
 
 %files service
 %{_unitdir}/csp-billing-adapter.service
