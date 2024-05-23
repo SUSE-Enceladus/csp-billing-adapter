@@ -65,7 +65,7 @@ to report billing information to the CSP API.
 %package service
 Summary:        The unit file for csp billing adapter
 Group:          System/Management
-Requires:       python3-csp-billing-adapter = %{version}
+Requires:       %{python_module csp-billing-adapter} = %{version}
 # pkg-config is needed to find correct systemd unit dir
 BuildRequires:  pkg-config
 BuildRequires:  pkgconfig(systemd)
