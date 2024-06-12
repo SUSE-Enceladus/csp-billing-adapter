@@ -92,6 +92,8 @@ def get_relative_period_delta(billing_interval: str):
 
     if billing_interval == 'monthly':
         kwargs['months'] = 1
+    elif billing_interval == 'daily':
+        kwargs['days'] = 1
     elif billing_interval == 'hourly':
         kwargs['hours'] = 1
     elif billing_interval == 'test':
