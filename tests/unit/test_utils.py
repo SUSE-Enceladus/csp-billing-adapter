@@ -89,12 +89,14 @@ def test_good_get_next_bill_time_hourly():
         'hourly') == \
         datetime.datetime(2023, 4, 20, 14, 8, 30)
 
+
 def test_good_get_next_bill_time_daily():
     """Test working utils.get_next_bill_time"""
     assert utils.get_next_bill_time(
         datetime.datetime(2023, 4, 20, 13, 8, 30),
         'daily') == \
         datetime.datetime(2023, 4, 21, 13, 8, 30)
+
 
 def test_good_get_next_bill_time_monthly():
     """Test working utils.get_next_bill_time"""
@@ -119,12 +121,14 @@ def test_good_get_prev_bill_time_hourly():
         'hourly') == \
         datetime.datetime(2023, 4, 20, 13, 8, 30)
 
+
 def test_good_get_prev_bill_time_daily():
     """Test working utils.get_prev_bill_time"""
     assert utils.get_prev_bill_time(
         datetime.datetime(2023, 4, 21, 13, 8, 30),
         'daily') == \
         datetime.datetime(2023, 4, 20, 13, 8, 30)
+
 
 def test_good_get_prev_bill_time_monthly():
     """Test working utils.get_prev_bill_time"""
