@@ -53,7 +53,7 @@ billing. The following is what a config file may look like:
 ```
 version: 1.1.1
 api: THE_PATH_WHERE_WE_GET_THE_UNIT_INFORMATION
-billing_interval: monthly|hourly
+billing_interval: monthly|daily|hourly
 query_interval: Time in seconds
 product_code: TBD
 archive_retention_period: 6
@@ -256,9 +256,11 @@ reporting interval is more frequent than the billing interval. This is where
 an application is expected to provide a "heartbeat" on a shorter interval than
 the product billing period.
 
-The billing interval has two possible values; monthly and hourly. When set to
-hourly the adapter bills usage every hour. And when set to monthly the adapter
-aggregates usage based on the query interval and bills once a month.
+The billing interval can be either monthly, daily, or hourly. When set to
+hourly the adapter bills usage every hour. When set to daily the
+adapter aggregates usage based on the query interval and bills once a day.
+Likewise, when set to monthly the adapter aggregates usage based on the query
+interval and bills once a month.
 
 ### Save data
 
