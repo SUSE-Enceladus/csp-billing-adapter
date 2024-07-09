@@ -1,7 +1,8 @@
 [Unit]
 Description=CSP usage reporting
+Requires=network.target
 Wants=billing-data-service.service
-After=billing-data-service.service
+After=network-online.target uyuni-server.service billing-data-service.service
 
 [Service]
 Type=simple
