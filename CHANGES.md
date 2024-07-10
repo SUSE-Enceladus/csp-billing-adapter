@@ -1,3 +1,8 @@
+v1.1.0 (2024-07-10)
+-------------------
+
+- Fix system file, service requires network and uyuni service
+
 v1.0.0 (2024-06-03)
 -------------------
 
