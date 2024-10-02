@@ -39,6 +39,8 @@ def meter_billing(
     config: Config,
     dimensions: dict,
     timestamp: datetime,
+    billing_period_start: str,
+    billing_period_end: str,
     dry_run: bool
 ) -> dict:
     """Simulate a CSP metering operation with a 5% chance of failure."""

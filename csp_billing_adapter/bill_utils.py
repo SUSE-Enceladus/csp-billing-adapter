@@ -408,6 +408,7 @@ def filter_usage_records_by_date_range(
 def filter_usage_records_in_billing_period(
     usage_records: list,
     config: Config,
+    billing_period_start: str,
     billing_period_end: str
 ) -> list:
     """
@@ -419,25 +420,21 @@ def filter_usage_records_in_billing_period(
     :param config:
         The configuration specifying the metrics that need to be
         processed in the usage records list.
+    :param billing_period_start:
+        The beginning of the current billing period, which is used to
+        determine the appropriate set of records to filter on.
     :param billing_period_end:
         The end of the current billing period, which is used to
-        determine the appropriate set of records to filter onG.
+        determine the appropriate set of records to filter on.
     :return:
         The set of usage records that falls within the billing period
         that ending at 'billing_period_end'.
     """
-    # determine time range to filter records for
-    range_end = string_to_date(billing_period_end)
-    range_start = get_prev_bill_time(
-        range_end,
-        config.billing_interval
-    )
-
     # retrieve the records that fall within the specified range
     filtered_records = filter_usage_records_by_date_range(
         usage_records,
-        date_to_string(range_start),
-        date_to_string(range_end)
+        billing_period_start,
+        billing_period_end
     )
 
     log.debug("Filtered records: %s", filtered_records)
@@ -539,9 +536,16 @@ def process_metering(
     # select usage records appropriate for this billing period
     usage_records = cache.get('usage_records', [])
     billing_period_end = cache.get('next_bill_time')
+    range_end = string_to_date(billing_period_end)
+    range_start = get_prev_bill_time(
+        range_end,
+        config.billing_interval
+    )
+    billing_period_start = date_to_string(range_start)
     billable_records = filter_usage_records_in_billing_period(
         usage_records,
         config,
+        billing_period_start,
         billing_period_end
     )
     log.debug("Billable records: %s", billable_records)
@@ -583,6 +587,8 @@ def process_metering(
                 config=config,
                 dimensions=billed_dimensions,
                 timestamp=now,
+                billing_period_start=billing_period_start,
+                billing_period_end=billing_period_end,
                 dry_run=False
             ),
             logger=log,

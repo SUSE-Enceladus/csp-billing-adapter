@@ -51,6 +51,8 @@ def test_meter_billing_ok(cba_config):
                 cba_config,
                 test_dimensions,
                 test_timestamp,
+                test_timestamp,
+                test_timestamp,
                 dry_run=False
             )
 
@@ -70,6 +72,8 @@ def test_meter_billing_error(cba_config):
             meter_billing(
                 cba_config,
                 test_dimensions,
+                test_timestamp,
+                test_timestamp,
                 test_timestamp,
                 dry_run=False
             )
