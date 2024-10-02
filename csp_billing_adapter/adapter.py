@@ -379,12 +379,15 @@ def metering_test(
                 config.usage_metrics[metric]['dimensions']
             ))['dimension']
 
+            now = get_now()
             retry_on_exception(
                 functools.partial(
                     hook.meter_billing,
                     config=config,
                     dimensions={dimension: 0},
-                    timestamp=get_now(),
+                    timestamp=now,
+                    billing_period_start=date_to_string(now),
+                    billing_period_end=date_to_string(now),
                     dry_run=True
                 ),
                 logger=log,

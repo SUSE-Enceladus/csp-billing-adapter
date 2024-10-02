@@ -30,6 +30,8 @@ def meter_billing(
     config: Config,
     dimensions: dict,
     timestamp: datetime,
+    billing_period_start: str,
+    billing_period_end: str,
     dry_run: bool
 ) -> dict:
     """
@@ -38,6 +40,8 @@ def meter_billing(
     :param config: The application configuration dictionary
     :param dimensions: A hash of the billing dimensions and quantities
     :param timestamp: RFC 3339 compliant datetime in UTC
+    :param billing_period_start: A datetime timestamp in UTC
+    :param billing_period_end: A datetime timestamp in UTC
     :param dry_run: Whether to test run metering call
     :return: Metering API call ID.
     """
