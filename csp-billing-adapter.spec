@@ -56,6 +56,7 @@ Requires(post): update-alternatives
 Requires(postun): update-alternatives
 %endif
 BuildArch:      noarch
+Obsoletes:      python3-csp-billing-adapter < %{version}
 %python_subpackages
 
 %description
