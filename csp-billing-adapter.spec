@@ -85,7 +85,7 @@ want the dependency on systemd when the adapter runs in a VM.
 
 %install
 %pyproject_install
-%python_clone -a %{buildroot}%{_bindir}/%{name}
+%python_clone -a %{buildroot}%{_bindir}/csp-billing-adapter
 %python_expand %fdupes %{buildroot}%{$python_sitelib}
 mkdir -p %{buildroot}%{_unitdir}
 install -m 644 systemd/csp-billing-adapter.service %{buildroot}%{_unitdir}
@@ -95,17 +95,22 @@ install -m 644 systemd/csp-billing-adapter.service %{buildroot}%{_unitdir}
 %pytest
 %endif
 
+%post
+%{python_install_alternative csp-billing-adapter}
+
+%postun
+%{python_uninstall_alternative csp-billing-adapter}
+
+%pre
+%python_libalternatives_reset_alternative csp-billing-adapter
 
 %post service
-%{python_install_alternative %{name}}
 %service_add_post csp-billing-adapter.service
 
 %postun service
-%{python_uninstall_alternative %{name}}
 %service_del_postun csp-billing-adapter.service
 
 %pre service
-%python_libalternatives_reset_alternative %{name}
 %service_add_pre csp-billing-adapter.service
 
 %preun service
@@ -116,7 +121,7 @@ install -m 644 systemd/csp-billing-adapter.service %{buildroot}%{_unitdir}
 %doc README.md CONTRIBUTING.md CHANGES.md
 %{python_sitelib}/csp_billing_adapter
 %{python_sitelib}/csp_billing_adapter-%{version}*-info
-%python_alternative %{_bindir}/%{name}
+%python_alternative %{_bindir}/csp-billing-adapter
 
 %files service
 %{_unitdir}/csp-billing-adapter.service
