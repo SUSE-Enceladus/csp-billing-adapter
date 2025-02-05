@@ -27,7 +27,7 @@ usage_metrics:
     # missing a tier_6 dimension spanning 501-1000
     - dimension: tier_7
       min: 1001
-    min_consumption: 5
+    minimum_consumption: 5
     usage_aggregation: average
   users:
     consumption_reporting: tiered
