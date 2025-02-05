@@ -52,6 +52,7 @@ from csp_billing_adapter import (
     archive_hookspecs,
     hookimpls
 )
+from csp_billing_adapter.utils import get_fixed_usage
 
 LOGGER_NAME = 'CSPBillingAdapter'
 LOGGING_FORMAT = '%(asctime)s.%(msecs)03d|%(levelname)s|%(name)s|%(message)s'
@@ -233,20 +234,23 @@ def event_loop_handler(
     log.info('Starting event loop processing')
     csp_config['errors'] = []
 
-    try:
-        usage = retry_on_exception(
-            functools.partial(
-                hook.get_usage_data,
-                config=config
-            ),
-            logger=log,
-            func_name="hook.get_usage_data"
-        )
-        log.debug('Retrieved usage data: %s', usage)
-    except Exception as exc:
-        usage = None
-        log.warning("Failed to retrieve usage data: %s", str(exc))
-        csp_config['errors'].append(f'Usage data retrieval failed: {exc}')
+    if config.get('api', '') == 'no_data_query':
+        usage = get_fixed_usage(config)
+    else:
+        try:
+            usage = retry_on_exception(
+                functools.partial(
+                    hook.get_usage_data,
+                    config=config
+                ),
+                logger=log,
+                func_name="hook.get_usage_data"
+            )
+            log.debug('Retrieved usage data: %s', usage)
+        except Exception as exc:
+            usage = None
+            log.warning("Failed to retrieve usage data: %s", str(exc))
+            csp_config['errors'].append(f'Usage data retrieval failed: {exc}')
 
     if usage:
         add_usage_record(usage, cache, config.billing_interval)
