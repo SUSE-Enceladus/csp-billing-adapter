@@ -25,6 +25,6 @@ usage_metrics:
       min: 251
       max: 500
     # missing a final dimension for 501+
-    min_consumption: 5
+    minimum_consumption: 5
     usage_aggregation: average
 version: 1.1.1

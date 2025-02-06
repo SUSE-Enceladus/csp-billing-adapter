@@ -243,7 +243,7 @@ def test_get_billable_usage_average(cba_config):
         now,
         cba_config,
         metric,
-        first_value=1,
+        first_value=6,
         increment=0,
         count=3
     )
@@ -251,7 +251,7 @@ def test_get_billable_usage_average(cba_config):
         now,
         cba_config,
         metric,
-        first_value=1,
+        first_value=6,
         increment=1,
         count=3
     )
@@ -264,7 +264,7 @@ def test_get_billable_usage_average(cba_config):
     )
 
     assert metric in billable_usage
-    assert billable_usage[metric] == 1  # average of [1, 1, 1]
+    assert billable_usage[metric] == 6  # average of [6, 6, 6]
 
     # verify correct average is calculated for variable usage
     billable_usage = get_billable_usage(
@@ -274,7 +274,7 @@ def test_get_billable_usage_average(cba_config):
     )
 
     assert metric in billable_usage
-    assert billable_usage[metric] == 2  # average of [1, 2, 3]
+    assert billable_usage[metric] == 7  # average of [6, 7, 8]
 
 
 @mark.config('config_good_maximum.yaml')
@@ -285,7 +285,7 @@ def test_get_billable_usage_maximum(cba_config):
         now,
         cba_config,
         metric,
-        first_value=1,
+        first_value=6,
         increment=0,
         count=3
     )
@@ -293,7 +293,7 @@ def test_get_billable_usage_maximum(cba_config):
         now,
         cba_config,
         metric,
-        first_value=1,
+        first_value=6,
         increment=1,
         count=3
     )
@@ -306,7 +306,7 @@ def test_get_billable_usage_maximum(cba_config):
     )
 
     assert metric in billable_usage
-    assert billable_usage[metric] == 1  # max of [1, 1, 1]
+    assert billable_usage[metric] == 6  # max of [6, 6, 6]
 
     # verify correct maximum is calculated for variable usage
     billable_usage = get_billable_usage(
@@ -316,7 +316,7 @@ def test_get_billable_usage_maximum(cba_config):
     )
 
     assert metric in billable_usage
-    assert billable_usage[metric] == 3  # max of [1, 2, 3]
+    assert billable_usage[metric] == 8  # max of [6, 7, 8]
 
 
 @mark.config('config_testing_mixed.yaml')
