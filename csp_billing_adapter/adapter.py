@@ -29,10 +29,11 @@ import pluggy
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.csp_cache import (
     add_usage_record,
-    create_cache
+    create_cache,
+    update_billing_dates
 )
 from csp_billing_adapter.csp_config import (
-    create_csp_config,
+    create_csp_config
 )
 from csp_billing_adapter.exceptions import (
     CSPBillingAdapterException,
@@ -218,6 +219,14 @@ def initial_adapter_setup(
     else:
         initial_deploy = False
 
+    if not initial_deploy and config.billing_interval == 'fixed':
+        update_billing_dates(hook, cache, config)
+        csp_config['expire'] = date_to_string(
+            string_to_date(config.end_of_support).replace(
+                tzinfo=datetime.timezone.utc
+            )
+        )
+
     log.info("Adapter setup complete")
     return cache, csp_config, initial_deploy
 
@@ -280,7 +289,10 @@ def event_loop_handler(
 
     trial_remaining = cache.get('trial_remaining', 0)
 
-    if now >= string_to_date(cache['next_bill_time']):
+    if (
+        cache['next_bill_time'] and
+        now >= string_to_date(cache['next_bill_time'])
+    ):
         if trial_remaining > 0 and len(archive) > 0:
             msg = (
                 'Free trial is active but archive contains metering history. '
@@ -309,7 +321,10 @@ def event_loop_handler(
                 cache,
                 csp_config
             )
-    elif now >= string_to_date(cache['next_reporting_time']):
+    elif (
+        cache['next_reporting_time'] and
+        (now >= string_to_date(cache['next_reporting_time']))
+    ):
         log.info('Attempt a reporting cycle update')
         process_metering(
             hook,
@@ -319,6 +334,14 @@ def event_loop_handler(
             csp_config,
             empty_metering=True
         )
+
+    if (
+        config.billing_interval == 'fixed' and
+        now >= string_to_date(csp_config['expire'])
+    ):
+        error = f'Private offer has expired as of: {csp_config["expire"]}'
+        if error not in csp_config['errors']:
+            csp_config['errors'].append(error)
 
     # Backup cache to datastore
 

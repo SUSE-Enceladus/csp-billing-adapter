@@ -22,11 +22,14 @@ low-level CSP config management operations.
 
 import logging
 
+from datetime import timezone
+
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.utils import (
     date_to_string,
     get_date_delta,
-    get_now
+    get_now,
+    string_to_date
 )
 
 log = logging.getLogger('CSPBillingAdapter')
@@ -49,7 +52,13 @@ def create_csp_config(
         The data archive location.
     """
     now = get_now()
-    expire = date_to_string(get_date_delta(now, config.reporting_interval))
+
+    if config.billing_interval == 'fixed':
+        expire = date_to_string(
+            string_to_date(config.end_of_support).replace(tzinfo=timezone.utc)
+        )
+    else:
+        expire = date_to_string(get_date_delta(now, config.reporting_interval))
 
     csp_config = {
         'billing_api_access_ok': True,

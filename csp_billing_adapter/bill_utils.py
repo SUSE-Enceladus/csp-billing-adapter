@@ -538,12 +538,17 @@ def process_metering(
 
     # select usage records appropriate for this billing period
     usage_records = cache.get('usage_records', [])
-    billing_period_end = cache.get('next_bill_time')
-    billable_records = filter_usage_records_in_billing_period(
-        usage_records,
-        config,
-        billing_period_end
-    )
+
+    if config.billing_interval == 'fixed':
+        billable_records = usage_records
+    else:
+        billing_period_end = cache.get('next_bill_time')
+        billable_records = filter_usage_records_in_billing_period(
+            usage_records,
+            config,
+            billing_period_end
+        )
+
     log.debug("Billable records: %s", billable_records)
 
     # the remaining records not selected as billable
@@ -620,23 +625,31 @@ def process_metering(
         )
 
         metering_time = date_to_string(now)
-        next_reporting_time = date_to_string(
-            get_date_delta(now, config.reporting_interval)
-        )
 
-        cache['next_reporting_time'] = next_reporting_time
+        if config.billing_interval != 'fixed':
+            next_reporting_time = date_to_string(
+                get_date_delta(now, config.reporting_interval)
+            )
+            cache['next_reporting_time'] = next_reporting_time
+            csp_config['expire'] = next_reporting_time
 
         csp_config['billing_api_access_ok'] = True
-        csp_config['expire'] = next_reporting_time
 
         if not empty_metering or free_trial:
             # Usage was billed
-            next_bill_time = date_to_string(
-                get_next_bill_time(
-                    string_to_date(cache['next_bill_time']),
-                    config.billing_interval
+            if config.billing_interval == 'fixed':
+                if cache['remaining_billing_dates']:
+                    next_bill_time = cache['remaining_billing_dates'].pop(0)
+                else:
+                    next_bill_time = None
+            else:
+                next_bill_time = date_to_string(
+                    get_next_bill_time(
+                        string_to_date(cache['next_bill_time']),
+                        config.billing_interval
+                    )
                 )
-            )
+
             log.debug(
                 "Billable metering submitted, next bill time: %s",
                 next_bill_time

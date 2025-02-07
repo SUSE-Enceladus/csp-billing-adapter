@@ -268,6 +268,14 @@ def retry_on_exception(
 
 
 def get_fixed_usage(config: Config):
+    """
+    Create a dictionary with fixed usage based on the configured dimensions.
+
+    :param config:
+        The configuration settings associated with the CSP.
+    :return:
+        The fixed usage to archive.
+    """
     usage = {}
     for metric, data in config.usage_metrics.items():
         usage[metric] = data.get('minimum_consumption', 0)

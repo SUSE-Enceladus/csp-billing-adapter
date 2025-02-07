@@ -23,6 +23,8 @@ management operations.
 import functools
 import logging
 
+from datetime import timezone
+
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.exceptions import (
     FailedToSaveCacheError
@@ -52,17 +54,36 @@ def create_cache(hook, config: Config) -> dict:
         The configuration settings associated with the CSP.
     """
     now = get_now()
-    next_bill_time = get_next_bill_time(now, config.billing_interval)
-    next_reporting_time = get_date_delta(now, config.reporting_interval)
+
+    if config.billing_interval == 'fixed':
+        remaining_billing_dates = config.billing_dates.split(',')
+        next_bill_time = string_to_date(
+            remaining_billing_dates.pop(0)
+        ).replace(tzinfo=timezone.utc)
+        next_reporting_time = None
+        trial_remaining = 0
+    else:
+        next_bill_time = get_next_bill_time(now, config.billing_interval)
+        next_reporting_time = date_to_string(
+            get_date_delta(now, config.reporting_interval)
+        )
+        trial_remaining = 1
 
     cache = {
         'adapter_start_time': date_to_string(now),
         'next_bill_time': date_to_string(next_bill_time),
-        'next_reporting_time': date_to_string(next_reporting_time),
+        'next_reporting_time': next_reporting_time,
         'usage_records': [],
         'last_bill': {},
-        'trial_remaining': 1
+        'trial_remaining': trial_remaining
     }
+
+    if config.billing_interval == 'fixed':
+        cache['remaining_billing_dates'] = remaining_billing_dates
+        cache['configured_billing_dates'] = config.billing_dates
+        cache['end_of_support'] = date_to_string(
+            string_to_date(config.end_of_support).replace(tzinfo=timezone.utc)
+        )
 
     try:
         retry_on_exception(
@@ -128,14 +149,17 @@ def add_usage_record(
     :param billing_interval:
         The cadence for meter billing.
     """
-    valid = record_valid(
-        record['reporting_time'],
-        cache['next_bill_time'],
-        billing_interval
-    )
-    if not valid:
-        log.info('Skipping invalid usage record: %s', record)
-        return
+
+    if billing_interval != 'fixed':
+        valid = record_valid(
+            record['reporting_time'],
+            cache['next_bill_time'],
+            billing_interval
+        )
+
+        if not valid:
+            log.info('Skipping invalid usage record: %s', record)
+            return
 
     if not cache.get('usage_records', []):
         log.info('Appending usage record: %s', record)
@@ -176,3 +200,31 @@ def cache_meter_record(
         'billing_status': billing_status,
         'metering_time': metering_time
     }
+
+
+def update_billing_dates(hook, cache: dict, config: Config):
+    """
+    Update the billing dates and next billing date if the config has changed.
+
+    :param hook:
+        The Pluggy plugin manager hook used to call the save_cache()
+        operation.
+    :param cache:
+        Cache to add the record to.
+    :param config:
+        The configuration settings associated with the CSP.
+    """
+    if (
+        config.billing_dates != cache['configured_billing_dates'] and
+        not cache['next_bill_time']
+    ):
+        remaining_billing_dates = config.billing_dates.split(',')
+        next_bill_time = string_to_date(remaining_billing_dates.pop(0))
+        cache['remaining_billing_dates'] = remaining_billing_dates
+        cache['configured_billing_dates'] = config.billing_dates
+        cache['end_of_support'] = date_to_string(
+            string_to_date(config.end_of_support).replace(tzinfo=timezone.utc)
+        )
+        cache['next_bill_time'] = date_to_string(
+            next_bill_time.replace(tzinfo=timezone.utc)
+        )
