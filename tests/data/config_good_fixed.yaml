@@ -1,0 +1,20 @@
+api: no_data_query
+billing_interval: fixed
+product_code: foo
+billing_dates: 20270101,20280101,20290101
+end_of_support: "20300101"
+query_interval: 86400
+reporting_api_is_cumulative: false
+reporting_interval: 0
+archive_retention_period: 1
+archive_bytes_limit: -1
+usage_metrics:
+  managed_node_count:
+    consumption_reporting: tiered
+    dimensions:
+    - dimension: tier_1
+      max: 15
+      min: 0
+    minimum_consumption: 5
+    usage_aggregation: maximum
+version: 2
