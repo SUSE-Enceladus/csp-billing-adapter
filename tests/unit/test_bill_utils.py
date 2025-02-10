@@ -865,3 +865,79 @@ def test_process_metering_legacy_return(
             'status'
         )
         assert status == 'submitted'
+
+
+@mark.config('config_good_fixed.yaml')
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_process_metering_fixed(mock_sleep, cba_pm, cba_config):
+    # initialise the cache
+    create_cache(
+        hook=cba_pm.hook,
+        config=cba_config
+    )
+    now = get_now()
+
+    test_cache = cba_pm.hook.get_cache(config=cba_config)
+    assert 'remaining_billing_dates' in test_cache
+    assert 'configured_billing_dates' in test_cache
+    assert 'end_of_support' in test_cache
+
+    record = {
+        "reporting_time": date_to_string(
+            get_date_delta(
+                string_to_date(test_cache['next_bill_time']),
+                -3
+            )
+        ),
+        "managed_node_count": 5,
+    }
+    add_usage_record(
+        record=record,
+        cache=test_cache,
+        billing_interval=cba_config.billing_interval
+    )
+
+    assert test_cache["usage_records"] == [record]
+
+    test_csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+    assert test_csp_config == {}
+
+    account_info = {'customer': 'data'}
+    archive_location = '/tmp/fake_archive.json'
+    test_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
+
+    assert 'billing_api_access_ok' in test_csp_config
+    assert test_csp_config['billing_api_access_ok'] is True
+    assert 'timestamp' in test_csp_config
+    assert 'expire' in test_csp_config
+    assert 'errors' in test_csp_config
+    assert test_csp_config['errors'] == []
+
+    with mock.patch(
+        'csp_billing_adapter.local_csp.randrange',
+        return_value=0  # meter_billing will succeed
+    ):
+        # now perform a real billing update operation, which should
+        # bill for usage records in the current billing period, and
+        # then will update the cache to reflect the new billing period
+        # and removed billed usage records
+        process_metering(
+            hook=cba_pm.hook,
+            config=cba_config,
+            now=now,
+            cache=test_cache,
+            csp_config=test_csp_config
+        )
+
+        assert test_cache["last_bill"] != {}
+
+        assert test_csp_config['billing_api_access_ok'] is True
+        assert test_csp_config['errors'] == []
+        assert 'usage' in test_csp_config
+        assert 'last_billed' in test_csp_config
+        assert test_cache['next_bill_time'] == '20280101'
+        assert test_cache['remaining_billing_dates'] == ['20290101']

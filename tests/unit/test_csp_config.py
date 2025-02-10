@@ -19,6 +19,7 @@
 #
 
 import datetime
+import pytest
 
 from csp_billing_adapter.csp_config import create_csp_config
 from csp_billing_adapter.utils import string_to_date
@@ -45,3 +46,16 @@ def test_create_csp_config(cba_config):
     delta = datetime.timedelta(seconds=cba_config.reporting_interval)
 
     assert timestamp + delta == expire
+
+
+@pytest.mark.config('config_good_fixed.yaml')
+def test_create_csp_config_fixed_billing(cba_config):
+    account_info = {'name': 'account1', 'id': '1234567890'}
+    archive_location = '/tmp/fake_archive.json'
+    new_csp_config = create_csp_config(
+        cba_config,
+        account_info,
+        archive_location
+    )
+
+    assert new_csp_config['expire'] == '2030-01-01T00:00:00+00:00'
