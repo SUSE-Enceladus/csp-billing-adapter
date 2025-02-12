@@ -24,7 +24,7 @@
 %{?sle15_python_module_pythons}
 
 Name:           csp-billing-adapter
-Version:        1.1.0
+Version:        1.2.0
 Release:        0
 Summary:        Reports marketplace billing information to CSP API
 License:        Apache-2.0
