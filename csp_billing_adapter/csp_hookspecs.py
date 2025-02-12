@@ -30,7 +30,8 @@ def meter_billing(
     config: Config,
     dimensions: dict,
     timestamp: datetime,
-    dry_run: bool
+    dry_run: bool,
+    customer_id: str = None
 ) -> dict:
     """
     Process metering request against the CSP API.
@@ -39,6 +40,7 @@ def meter_billing(
     :param dimensions: A hash of the billing dimensions and quantities
     :param timestamp: RFC 3339 compliant datetime in UTC
     :param dry_run: Whether to test run metering call
+    :param customer_id: The ID of the customer for batch billing
     :return: Metering API call ID.
     """
 
