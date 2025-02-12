@@ -7,6 +7,6 @@ archive_retention_period: 6
 usage_metrics:
   managed_node_count:
     consumption_reporting: volume
-    min_consumption: 5
+    minimum_consumption: 5
     usage_aggregation: average
 version: 1.1.1

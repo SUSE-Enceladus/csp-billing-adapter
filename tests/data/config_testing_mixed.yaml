@@ -18,7 +18,7 @@ usage_metrics:
       min: 16
     - dimension: jobs_tier_3
       min: 51
-    min_consumption: 5
+    minimum_consumption: 5
     usage_aggregation: average
   nodes:
     # test metric with max aggregation, volume reporting
@@ -32,7 +32,7 @@ usage_metrics:
       min: 6
     - dimension: nodes_tier_3
       min: 16
-    min_consumption: 2
+    minimum_consumption: 2
     usage_aggregation: maximum
   instances:
     # test metric with max aggregation, tiered reporting
@@ -46,7 +46,7 @@ usage_metrics:
       min: 101
     - dimension: instances_tier_3
       min: 251
-    min_consumption: 2
+    minimum_consumption: 2
     usage_aggregation: maximum
   threads:
     # test metric with max aggregation, tiered reporting, single

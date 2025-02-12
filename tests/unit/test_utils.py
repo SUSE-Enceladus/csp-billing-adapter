@@ -293,3 +293,9 @@ def test_retry_on_exception_func_name(caplog):
     assert (
         "Attempting to run '%s'" % func_name
     ) in caplog.text
+
+
+def test_get_fixed_usage(cba_config):
+    usage = utils.get_fixed_usage(cba_config)
+    assert usage['managed_node_count'] == 5
+    assert usage['reporting_time']

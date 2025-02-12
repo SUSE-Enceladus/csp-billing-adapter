@@ -15,11 +15,14 @@
 #
 """utils.py is part of csp-billing-adapter and provides utility functions"""
 import datetime
+import logging
+import time
+
 from dateutil.relativedelta import relativedelta
 from dateutil import parser
-import logging
 from functools import partial
-import time
+
+from csp_billing_adapter.config import Config
 
 
 log = logging.getLogger('CSPBillingAdapter')
@@ -262,3 +265,20 @@ def retry_on_exception(
 
             # decrement remaining tries
             retries -= 1
+
+
+def get_fixed_usage(config: Config):
+    """
+    Create a dictionary with fixed usage based on the configured dimensions.
+
+    :param config:
+        The configuration settings associated with the CSP.
+    :return:
+        The fixed usage to archive.
+    """
+    usage = {}
+    for metric, data in config.usage_metrics.items():
+        usage[metric] = data.get('minimum_consumption', 0)
+
+    usage['reporting_time'] = date_to_string(get_now())
+    return usage

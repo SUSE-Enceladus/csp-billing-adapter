@@ -797,3 +797,80 @@ def test_main_sleep(
             cba_main()
         assert e.value.code == 0
         assert expected_log_msg in caplog.text
+
+
+@pytest.mark.config('config_good_fixed.yaml')
+@mock.patch('csp_billing_adapter.local_csp.randrange')
+@mock.patch('csp_billing_adapter.utils.time.sleep')
+def test_event_loop_handler_fixed_billing(
+    mock_sleep,
+    mock_randrange,
+    cba_pm,
+    cba_config,
+    cba_log
+):
+    """Verify correct operation of event_loop_handler()."""
+    # ensure meter_billing will succeed
+    mock_randrange.return_value = 0
+
+    # setup the adapter environment similar to what is done
+    # inside the csp_billing_adapter.adapter.main()
+    initial_adapter_setup(cba_pm.hook, cba_config, cba_log)
+
+    # validate the initial state of the cache
+    cache = cba_pm.hook.get_cache(config=cba_config)
+    assert cache != {}
+    assert cache['usage_records'] == []
+    assert cache['last_bill'] == {}
+    assert cache['remaining_billing_dates'] == ['20280101', '20290101']
+    assert cache['configured_billing_dates'] == '20270101,20280101,20290101'
+    assert cache['end_of_support'] == '2030-01-01T00:00:00+00:00'
+    assert cache['next_reporting_time'] is None
+    assert cache['trial_remaining'] == 0
+
+    # validate the initial state of the csp_cache
+    csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+    assert csp_config != {}
+    assert csp_config['billing_api_access_ok'] is True
+    assert 'timestamp' in csp_config
+    assert csp_config['expire'] == '2030-01-01T00:00:00+00:00'
+    assert csp_config['errors'] == []
+    assert 'usage' not in csp_config
+    assert 'last_billed' not in csp_config
+
+    #
+    # Startup/first iteration
+    #
+
+    # Simulate running the first iteration of the event loop after
+    # starting the csp-billing-adpater for the first time for a
+    # given config.
+    event_time = get_now()
+
+    event_loop_handler(
+        cba_pm.hook,
+        cba_config,
+        cba_log,
+        event_time,
+        cache,
+        csp_config
+    )
+
+    # This run should have added a new usage_record, but
+    # not triggered any billing related updates to the cache.
+    cache = cba_pm.hook.get_cache(config=cba_config)
+    assert cache != {}
+    assert cache['usage_records'] != []
+    assert len(cache['usage_records']) == 1
+    assert cache['last_bill'] == {}
+    assert cache['trial_remaining'] == 0
+
+    # Similarly the meter_billing() call should have succeeded
+    # not triggered the generation of a new bill.
+    csp_config = cba_pm.hook.get_csp_config(config=cba_config)
+    assert csp_config != {}
+    assert csp_config['billing_api_access_ok'] is True
+    assert csp_config['errors'] == []
+    assert 'usage' not in csp_config
+    assert 'last_billed' not in csp_config
+    assert csp_config['timestamp'] == date_to_string(event_time)

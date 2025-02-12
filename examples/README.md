@@ -94,7 +94,7 @@ usage_metrics:
             average
                 When set to this value, the billing adapter queries the application API hourly and stores the retrieved information in the internal data structure. When the billing adapter reports to the CSP API the average over all values is calculated and this is the number of units being reported. This calculation is rounded up to the nearest integer unit. The internal storage structure is cleared. Expressed differently sum_of_all_numbers_in_array / length_of_array
     
-    min_consumption: (OPTIONAL)
+    minimum_consumption: (OPTIONAL)
         count 
             Set the minimum unit count the csp-billing-adapter will report. If the application reports a total unit count greater than 0 and less than this number this is the value the csp-billing-adapter will use instead of the application reported number.
     

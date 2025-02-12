@@ -21,13 +21,14 @@
 import datetime
 from unittest import mock
 
-from pytest import raises
+from pytest import raises, mark
 
 from csp_billing_adapter.csp_cache import (
     add_usage_record,
     cache_meter_record,
     create_cache,
-    record_valid
+    record_valid,
+    update_billing_dates
 )
 from csp_billing_adapter.exceptions import (
     FailedToSaveCacheError
@@ -50,6 +51,23 @@ def test_create_cache(cba_pm, cba_config):
     assert 'last_bill' in cache
     assert cache['last_bill'] == {}
 
+    assert new_cache == cache
+
+
+@mark.config('config_good_fixed.yaml')
+def test_create_cache_fixed_billing(cba_pm, cba_config):
+    # cache should initially be empty
+    assert cba_pm.hook.get_cache(config=cba_config) == {}
+
+    new_cache = create_cache(cba_pm.hook, cba_config)
+
+    cache = cba_pm.hook.get_cache(config=cba_config)
+
+    assert 'remaining_billing_dates' in cache
+    assert 'configured_billing_dates' in cache
+    assert 'end_of_support' in cache
+    assert cache['next_reporting_time'] is None
+    assert cache['trial_remaining'] == 0
     assert new_cache == cache
 
 
@@ -256,3 +274,19 @@ def test_validate_usage_record(cba_pm, cba_config):
         cba_config.billing_interval
     )
     assert not valid
+
+
+@mark.config('config_good_fixed.yaml')
+def test_update_billing_dates(cba_pm, cba_config):
+    create_cache(cba_pm.hook, cba_config)
+    cache = cba_pm.hook.get_cache(config=cba_config)
+
+    cache['configured_billing_dates'] = '20200101,20210101,20220101'
+    cache['end_of_support'] = '20230101'
+    cache['next_bill_time'] = None
+
+    update_billing_dates(cba_pm.hook, cache, cba_config)
+    assert cache['configured_billing_dates'] == '20270101,20280101,20290101'
+    assert cache['end_of_support'] == '2030-01-01T00:00:00+00:00'
+    assert cache['next_bill_time'] == '2027-01-01T00:00:00+00:00'
+    assert cache['remaining_billing_dates'] == ['20280101', '20290101']

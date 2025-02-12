@@ -29,10 +29,11 @@ import pluggy
 from csp_billing_adapter.config import Config
 from csp_billing_adapter.csp_cache import (
     add_usage_record,
-    create_cache
+    create_cache,
+    update_billing_dates
 )
 from csp_billing_adapter.csp_config import (
-    create_csp_config,
+    create_csp_config
 )
 from csp_billing_adapter.exceptions import (
     CSPBillingAdapterException,
@@ -52,6 +53,7 @@ from csp_billing_adapter import (
     archive_hookspecs,
     hookimpls
 )
+from csp_billing_adapter.utils import get_fixed_usage
 
 LOGGER_NAME = 'CSPBillingAdapter'
 LOGGING_FORMAT = '%(asctime)s.%(msecs)03d|%(levelname)s|%(name)s|%(message)s'
@@ -217,6 +219,14 @@ def initial_adapter_setup(
     else:
         initial_deploy = False
 
+    if not initial_deploy and config.billing_interval == 'fixed':
+        update_billing_dates(hook, cache, config)
+        csp_config['expire'] = date_to_string(
+            string_to_date(config.end_of_support).replace(
+                tzinfo=datetime.timezone.utc
+            )
+        )
+
     log.info("Adapter setup complete")
     return cache, csp_config, initial_deploy
 
@@ -233,20 +243,23 @@ def event_loop_handler(
     log.info('Starting event loop processing')
     csp_config['errors'] = []
 
-    try:
-        usage = retry_on_exception(
-            functools.partial(
-                hook.get_usage_data,
-                config=config
-            ),
-            logger=log,
-            func_name="hook.get_usage_data"
-        )
-        log.debug('Retrieved usage data: %s', usage)
-    except Exception as exc:
-        usage = None
-        log.warning("Failed to retrieve usage data: %s", str(exc))
-        csp_config['errors'].append(f'Usage data retrieval failed: {exc}')
+    if config.get('api', '') == 'no_data_query':
+        usage = get_fixed_usage(config)
+    else:
+        try:
+            usage = retry_on_exception(
+                functools.partial(
+                    hook.get_usage_data,
+                    config=config
+                ),
+                logger=log,
+                func_name="hook.get_usage_data"
+            )
+            log.debug('Retrieved usage data: %s', usage)
+        except Exception as exc:
+            usage = None
+            log.warning("Failed to retrieve usage data: %s", str(exc))
+            csp_config['errors'].append(f'Usage data retrieval failed: {exc}')
 
     if usage:
         add_usage_record(usage, cache, config.billing_interval)
@@ -276,7 +289,10 @@ def event_loop_handler(
 
     trial_remaining = cache.get('trial_remaining', 0)
 
-    if now >= string_to_date(cache['next_bill_time']):
+    if (
+        cache['next_bill_time'] and
+        now >= string_to_date(cache['next_bill_time'])
+    ):
         if trial_remaining > 0 and len(archive) > 0:
             msg = (
                 'Free trial is active but archive contains metering history. '
@@ -305,7 +321,10 @@ def event_loop_handler(
                 cache,
                 csp_config
             )
-    elif now >= string_to_date(cache['next_reporting_time']):
+    elif (
+        cache['next_reporting_time'] and
+        (now >= string_to_date(cache['next_reporting_time']))
+    ):
         log.info('Attempt a reporting cycle update')
         process_metering(
             hook,
@@ -315,6 +334,14 @@ def event_loop_handler(
             csp_config,
             empty_metering=True
         )
+
+    if (
+        config.billing_interval == 'fixed' and
+        now >= string_to_date(csp_config['expire'])
+    ):
+        error = f'Private offer has expired as of: {csp_config["expire"]}'
+        if error not in csp_config['errors']:
+            csp_config['errors'].append(error)
 
     # Backup cache to datastore
 
