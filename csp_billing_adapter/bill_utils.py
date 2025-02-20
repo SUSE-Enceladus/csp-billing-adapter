@@ -25,6 +25,7 @@ import logging
 import math
 
 from csp_billing_adapter.csp_cache import cache_meter_record
+from csp_billing_adapter.csp_config import get_customer_id
 from csp_billing_adapter.exceptions import (
     ConsumptionReportingInvalidError,
     MissingTieredDimensionError,
@@ -588,7 +589,8 @@ def process_metering(
                 config=config,
                 dimensions=billed_dimensions,
                 timestamp=now,
-                dry_run=False
+                dry_run=False,
+                customer_id=get_customer_id()
             ),
             logger=log,
             func_name="hook.meter_billing"

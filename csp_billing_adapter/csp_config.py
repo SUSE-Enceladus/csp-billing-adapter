@@ -21,6 +21,7 @@ low-level CSP config management operations.
 """
 
 import logging
+import os
 
 from datetime import timezone
 
@@ -33,6 +34,10 @@ from csp_billing_adapter.utils import (
 )
 
 log = logging.getLogger('CSPBillingAdapter')
+
+
+def get_customer_id() -> str:
+    return os.environ.get('CUSTOMER_BILLING_ID')
 
 
 def create_csp_config(
@@ -66,6 +71,7 @@ def create_csp_config(
         'expire': expire,
         'customer_csp_data': account_info,
         'archive_location': archive_location,
+        'customer_billing_id': get_customer_id(),
         'errors': []
     }
 
