@@ -33,7 +33,8 @@ from csp_billing_adapter.csp_cache import (
     update_billing_dates
 )
 from csp_billing_adapter.csp_config import (
-    create_csp_config
+    create_csp_config,
+    get_customer_id
 )
 from csp_billing_adapter.exceptions import (
     CSPBillingAdapterException,
@@ -412,7 +413,8 @@ def metering_test(
                     config=config,
                     dimensions={dimension: 0},
                     timestamp=get_now(),
-                    dry_run=True
+                    dry_run=True,
+                    customer_id=get_customer_id()
                 ),
                 logger=log,
                 func_name="hook.meter_billing"
