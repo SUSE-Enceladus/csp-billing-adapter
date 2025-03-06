@@ -1,3 +1,8 @@
+v1.3.0 (2025-03-06)
+-------------------
+
+- Add batch metering workflow for SaaS billing
+
 v1.2.0 (2025-02-12)
 -------------------
 
