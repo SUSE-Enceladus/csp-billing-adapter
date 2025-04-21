@@ -59,6 +59,12 @@ def string_to_date(timestamp: str) -> datetime.datetime:
             f"Invalid timestamp passed to string_to_date(): {timestamp}") \
             from exc
 
+    if (
+        parsed_date.tzinfo is None
+        or parsed_date.tzinfo.utcoffset(parsed_date) is None
+    ):
+        parsed_date = parsed_date.replace(tzinfo=datetime.timezone.utc)
+
     log.debug("%s parsed to: %s", repr(timestamp), parsed_date)
 
     return parsed_date
