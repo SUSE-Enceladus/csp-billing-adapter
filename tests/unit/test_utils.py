@@ -48,7 +48,7 @@ def test_bad_date_to_string_value_error():
 def test_good_string_to_date():
     """Test working utils.string_to_date"""
     assert utils.string_to_date('2023-04-20T13:08:30') == \
-        datetime.datetime(2023, 4, 20, 13, 8, 30)
+        datetime.datetime(2023, 4, 20, 13, 8, 30, tzinfo=datetime.timezone.utc)
 
 
 def test_bad_string_to_date():
