@@ -1,3 +1,8 @@
+v1.3.2 (2025-06-10)
+-------------------
+
+- Make customer id required in meter billing hookspec
+
 v1.3.1 (2025-04-21)
 -------------------
 
