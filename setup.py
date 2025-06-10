@@ -39,7 +39,7 @@ with open('requirements-dev.txt') as req_file:
 
 setup(
     name='csp-billing-adapter',
-    version='1.3.1',
+    version='1.3.2',
     description='TBD',
     long_description=readme,
     long_description_content_type='text/markdown',
