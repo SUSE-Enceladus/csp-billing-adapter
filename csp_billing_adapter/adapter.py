@@ -117,7 +117,13 @@ def get_config(
 def update_logger_from_config(config: Config, log: logging.Logger):
     """Update the logger based on configuration file options."""
     current_level = log.getEffectiveLevel()
-    log.setLevel(config.get('logging', {}).get('level', current_level))
+
+    log_level = (
+        os.environ.get('LOG_LEVEL') or
+        config.get('logging', {}).get('level') or
+        current_level
+    )
+    log.setLevel(log_level)
 
     if current_level != log.getEffectiveLevel():
         log.info(

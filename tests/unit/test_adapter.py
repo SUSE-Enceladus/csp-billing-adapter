@@ -76,18 +76,21 @@ def test_setup_logging():
     assert log.name == "CSPBillingAdapter"
 
 
-def test_update_logger_from_config():
+def test_update_logger_from_config(monkeypatch):
     """Verify logging is updated correctly."""
     log = setup_logging()
     update_logger_from_config({'logging': {'level': 'WARN'}}, log)
-
     assert log.getEffectiveLevel() == 30
 
     log = setup_logging()
     expected_level = log.getEffectiveLevel()
     update_logger_from_config({}, log)
-
     assert log.getEffectiveLevel() == expected_level
+
+    monkeypatch.setenv('LOG_LEVEL', 'DEBUG')
+    update_logger_from_config({'logging': {'level': 'WARN'}}, log)
+    assert log.getEffectiveLevel() == 10
+    monkeypatch.delenv('LOG_LEVEL')
 
 
 def test_get_config(cba_pm, cba_config, cba_config_path, cba_log):
