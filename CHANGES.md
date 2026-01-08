@@ -1,3 +1,8 @@
+v1.4.0 (2026-01-08)
+-------------------
+
+- Add environment variable to override log level
+
 v1.3.2 (2025-06-10)
 -------------------
 
