@@ -1,6 +1,7 @@
 name: Publish Python Package To PyPI
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
