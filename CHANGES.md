@@ -1,3 +1,10 @@
+v1.5.0 (2026-07-08)
+-------------------
+
+- Add pypi publishing workflow
+- Fix license classifier in setup.py
+- Fix pypi package name in spec file
+
 v1.4.0 (2026-01-08)
 -------------------
 
