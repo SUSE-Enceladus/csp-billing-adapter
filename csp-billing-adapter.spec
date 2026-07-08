@@ -30,7 +30,7 @@ Summary:        Reports marketplace billing information to CSP API
 License:        Apache-2.0
 Group:          Development/Languages/Python
 URL:            https://github.com/SUSE-Enceladus/csp-billing-adapter
-Source:         https://files.pythonhosted.org/packages/source/c/%{name}/%{name}-%{version}.tar.gz
+Source:         https://files.pythonhosted.org/packages/source/c/%{name}/csp_billing_adapter-%{version}.tar.gz
 BuildRequires:  fdupes
 BuildRequires:  python-rpm-macros
 BuildRequires:  %{python_module pip}
@@ -78,7 +78,7 @@ separated to avoid pulling systemd into container builds of the code. We only
 want the dependency on systemd when the adapter runs in a VM.
 
 %prep
-%autosetup -n %{name}-%{version}
+%autosetup -n csp_billing_adapter-%{version}
 
 %build
 %pyproject_wheel
